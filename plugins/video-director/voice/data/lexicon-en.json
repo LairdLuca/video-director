@@ -1,0 +1,9 @@
+{
+  "_about": "IPA for English terms that espeak gets wrong or that the main-language voices blur, as a last resort. Every entry is a correct English pronunciation, chosen with the Whisper probe among English variants; never a main-language respelling. 'say' is the same pronunciation in letters, for the check; readings that sound the same are separated by |. Word-final consonants are handled by the generic final_fix rule, not here.",
+  "kubectl": {"ipa": "kjˈuːb kəntɹˈoʊl", "say": "kube control|cube control", "why": "espeak reads it kyoo-bek-tl; Whisper heard Qbectl. 'kube control' is a common spoken form; Whisper often writes it 'cube control'"},
+  "database": {"ipa": "dˈeɪtəbeɪs", "say": "database", "why": "the US flap in espeak's dˈeɪɾəbeɪs was heard as d'herbe"},
+  "url": {"ipa": "jˌuː ɑːɹ ˈɛl", "say": "URL", "why": "spelled letter by letter"},
+  "new": {"ipa": "njˈuː", "say": "new", "why": "US nˈuː was heard as noo or note"},
+  "branch": {"ipa": "bɹˈæːntʃ", "say": "branch", "why": "short æ was heard as Italian branco"},
+  "kubelet": {"ipa": "kjˈuːbɛlɪt", "say": "kubelet|cubelet|qubelet", "why": "espeak blurs it; with this IPA Whisper writes the right sound as Cubelet or Qubelet, which the check now accepts (it reported the right sound as not heard in a test video)"}
+}

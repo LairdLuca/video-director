@@ -1,0 +1,283 @@
+{
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "captions": true,
+  "chapters": [
+    { "id": "problem", "label": "PROBLEMA" },
+    { "id": "diagnosis", "label": "DIAGNOSI" },
+    { "id": "cause", "label": "CAUSA" },
+    { "id": "fix", "label": "FIX" },
+    { "id": "verify", "label": "VERIFICA" },
+    { "id": "lesson", "label": "LEZIONE" }
+  ],
+  "shots": [
+    {
+      "id": "sh01",
+      "chapter": "problem",
+      "scene": "HookStatus",
+      "theme": "light",
+      "sentences": ["s01"],
+      "props": {
+        "flow": {
+          "nodes": [
+            { "icon": "rocket", "label": "deploy 2.4.0" },
+            { "icon": "shopping-cart", "label": "checkout" }
+          ],
+          "broken": true
+        },
+        "slab": { "value": "503", "side": "right", "tone": "accent" }
+      },
+      "beats": [
+        { "name": "flowIn", "word": "deploy", "sentence": "s01" },
+        { "name": "target", "word": "checkout", "sentence": "s01" },
+        { "name": "slab", "word": "503", "sentence": "s01" }
+      ],
+      "learns": "after the 2.4.0 deploy, checkout answers 503",
+      "sources": ["facts.md:9", "facts.md:10"]
+    },
+    {
+      "id": "sh02",
+      "chapter": "diagnosis",
+      "scene": "Terminal",
+      "theme": "light",
+      "sentences": ["s02", "s03"],
+      "transitionIn": "push",
+      "props": {
+        "title": "~/acme-shop",
+        "size": "tile",
+        "lines": [
+          { "kind": "cmd", "text": "kubectl get pods -n shop", "at": "cmd" },
+          { "kind": "out", "text": "NAME                        READY   STATUS             RESTARTS   AGE" },
+          { "kind": "err", "text": "checkout-7d9f8c6b5-x2kqp    0/1     CrashLoopBackOff   6          8m" },
+          { "kind": "out", "text": "cart-5c8b7d9f4-p9wzt        1/1     Running            0          3d" }
+        ],
+        "focus": [
+          { "line": 3, "style": "brackets", "at": "crash" },
+          { "line": 3, "style": "tint", "at": "restarts" }
+        ]
+      },
+      "beats": [
+        { "name": "cmd", "word": "pod", "sentence": "s02" },
+        { "name": "crash", "word": "CrashLoopBackOff", "sentence": "s03" },
+        { "name": "restarts", "word": "riavvii", "sentence": "s03" }
+      ],
+      "learns": "the checkout pod is in CrashLoopBackOff with 6 restarts in 8 minutes",
+      "sources": ["facts.md:14", "facts.md:15", "facts.md:16", "facts.md:17"]
+    },
+    {
+      "id": "sh03",
+      "chapter": "diagnosis",
+      "scene": "Terminal",
+      "theme": "light",
+      "sentences": ["s04"],
+      "transitionIn": "push",
+      "props": {
+        "title": "~/acme-shop",
+        "size": "tile",
+        "lines": [
+          { "kind": "cmd", "text": "kubectl describe pod checkout-7d9f8c6b5-x2kqp -n shop", "at": "cmd" },
+          { "kind": "out", "text": "    Last State:     Terminated" },
+          { "kind": "out", "text": "      Reason:       Error" },
+          { "kind": "out", "text": "      Exit Code:    1" },
+          { "kind": "out", "text": "  Warning  BackOff  2m (x24 over 8m)  kubelet  Back-off restarting failed container" }
+        ],
+        "focus": [
+          { "line": 4, "style": "brackets", "at": "exit" },
+          { "line": 5, "style": "brackets", "at": "backoff" }
+        ]
+      },
+      "beats": [
+        { "name": "cmd", "word": "describe", "sentence": "s04" },
+        { "name": "exit", "word": "exit code", "sentence": "s04" },
+        { "name": "backoff", "word": "back-off", "sentence": "s04" }
+      ],
+      "learns": "the container exits with code 1 and kubelet restarts it in back-off",
+      "sources": ["facts.md:22", "facts.md:24", "facts.md:25", "facts.md:26", "facts.md:29"]
+    },
+    {
+      "id": "sh04",
+      "chapter": "diagnosis",
+      "scene": "Terminal",
+      "theme": "dark",
+      "sentences": ["s05"],
+      "transitionIn": "push",
+      "props": {
+        "title": "~/acme-shop",
+        "size": "full",
+        "lines": [
+          { "kind": "cmd", "text": "kubectl logs checkout-7d9f8c6b5-x2kqp -n shop --previous", "at": "cmd" },
+          { "kind": "out", "text": "Starting checkout service v2.4.0" },
+          { "kind": "err", "text": "Error: required environment variable DATABASE_URL is not set", "at": "error" }
+        ],
+        "focus": [{ "line": 3, "style": "brackets", "at": "var" }]
+      },
+      "beats": [
+        { "name": "cmd", "word": "log", "sentence": "s05" },
+        { "name": "error", "word": "variabile", "sentence": "s05" },
+        { "name": "var", "word": "DATABASE_URL", "sentence": "s05" }
+      ],
+      "learns": "the previous container's log says DATABASE_URL is not set",
+      "sources": ["facts.md:34", "facts.md:35", "facts.md:36"]
+    },
+    {
+      "id": "sh05",
+      "chapter": "cause",
+      "scene": "StrikeReplace",
+      "theme": "light",
+      "sentences": ["s06"],
+      "transitionIn": "push",
+      "props": {
+        "prefix": "2.4.0:",
+        "before": "DB_HOST + DB_PORT",
+        "after": "DATABASE_URL",
+        "atStrike": "strike",
+        "atAfter": "after",
+        "note": "connessione al database",
+        "atNote": "note"
+      },
+      "beats": [
+        { "name": "strike", "word": "DB_PORT", "sentence": "s06" },
+        { "name": "note", "word": "connessione", "sentence": "s06" },
+        { "name": "after", "word": "DATABASE_URL", "sentence": "s06" }
+      ],
+      "learns": "2.4.0 reads the database connection from DATABASE_URL instead of DB_HOST and DB_PORT",
+      "sources": ["facts.md:40", "facts.md:41"]
+    },
+    {
+      "id": "sh06",
+      "chapter": "cause",
+      "scene": "FlowDiagram",
+      "theme": "light",
+      "sentences": ["s07"],
+      "transitionIn": "push",
+      "props": {
+        "layout": "row",
+        "nodes": [
+          { "id": "manifest", "icon": "file-text", "label": "manifest", "at": "manifest" },
+          { "id": "container", "icon": "box", "label": "container checkout", "at": "container" }
+        ],
+        "edges": [{ "from": "manifest", "to": "container", "at": "edge", "broken": true }],
+        "marks": [
+          { "node": "manifest", "kind": "cross", "at": "stale" },
+          { "node": "container", "kind": "slot-missing", "label": "DATABASE_URL", "at": "missing" }
+        ]
+      },
+      "beats": [
+        { "name": "manifest", "word": "manifest", "sentence": "s07" },
+        { "name": "stale", "word": "aggiornato", "sentence": "s07" },
+        { "name": "edge", "word": "quindi", "sentence": "s07" },
+        { "name": "container", "word": "container", "sentence": "s07" },
+        { "name": "missing", "word": "esiste", "sentence": "s07" }
+      ],
+      "learns": "the deployment manifest was not updated, so the variable is missing in the container",
+      "sources": ["facts.md:41", "facts.md:42"]
+    },
+    {
+      "id": "sh07",
+      "chapter": "fix",
+      "scene": "CodeWalk",
+      "theme": "dark",
+      "sentences": ["s08", "s09"],
+      "transitionIn": "wipe",
+      "props": {
+        "file": "container checkout",
+        "language": "yaml",
+        "code": "env:\n  - name: DATABASE_URL\n    valueFrom:\n      secretKeyRef:\n        name: checkout-db\n        key: url\n",
+        "walk": [
+          { "line": 5, "at": "secretName" },
+          { "line": 6, "at": "key" },
+          { "line": 2, "at": "var" },
+          { "line": 4, "at": "ref" }
+        ]
+      },
+      "beats": [
+        { "name": "secretName", "word": "checkout-db", "sentence": "s08" },
+        { "name": "key", "word": "url", "sentence": "s08" },
+        { "name": "var", "word": "DATABASE_URL", "sentence": "s09" },
+        { "name": "ref", "word": "secret", "sentence": "s09" }
+      ],
+      "learns": "DATABASE_URL is added to the container, read from secret checkout-db key url",
+      "sources": ["facts.md:45", "facts.md:48", "facts.md:49", "facts.md:50", "facts.md:51", "facts.md:52", "facts.md:53"]
+    },
+    {
+      "id": "sh08",
+      "chapter": "fix",
+      "scene": "Terminal",
+      "theme": "light",
+      "sentences": ["s10"],
+      "transitionIn": "push",
+      "props": {
+        "title": "~/acme-shop",
+        "size": "tile",
+        "lines": [
+          { "kind": "cmd", "text": "kubectl apply -f checkout-deployment.yaml -n shop", "at": "apply" },
+          { "kind": "out", "text": "deployment.apps/checkout configured" },
+          { "kind": "cmd", "text": "kubectl rollout restart deployment/checkout -n shop", "at": "restart" },
+          { "kind": "ok", "text": "deployment.apps/checkout restarted" }
+        ],
+        "focus": [{ "line": 4, "style": "brackets", "at": "newpod" }]
+      },
+      "beats": [
+        { "name": "apply", "word": "applichiamo", "sentence": "s10" },
+        { "name": "restart", "word": "riavviamo", "sentence": "s10" },
+        { "name": "newpod", "word": "nuovo", "sentence": "s10" }
+      ],
+      "learns": "the manifest is applied and the deployment restarted",
+      "sources": ["facts.md:57", "facts.md:58", "facts.md:59", "facts.md:60"]
+    },
+    {
+      "id": "sh09",
+      "chapter": "verify",
+      "scene": "StatusCard",
+      "theme": "light",
+      "sentences": ["s11", "s12"],
+      "transitionIn": "push",
+      "props": {
+        "title": "checkout-6b8d9f7c4-m4vtr",
+        "rows": [
+          { "label": "rollout", "value": "successfully rolled out", "ok": true, "at": "rollout" },
+          { "label": "STATUS", "value": "Running", "ok": true, "at": "running" },
+          { "label": "RESTARTS", "value": "0", "ok": true, "at": "restarts" }
+        ],
+        "slab": { "value": "200", "side": "right", "tone": "accent", "at": "slab" }
+      },
+      "beats": [
+        { "name": "rollout", "word": "successo", "sentence": "s11" },
+        { "name": "running", "word": "Running", "sentence": "s11" },
+        { "name": "restarts", "word": "riavvii", "sentence": "s11" },
+        { "name": "slab", "word": "200", "sentence": "s12" }
+      ],
+      "learns": "the rollout succeeded, the new pod is Running with 0 restarts, checkout answers 200",
+      "sources": ["facts.md:65", "facts.md:66", "facts.md:68", "facts.md:69", "facts.md:71"]
+    },
+    {
+      "id": "sh10",
+      "chapter": "lesson",
+      "scene": "Lesson",
+      "theme": "dark",
+      "sentences": ["s13", "s14"],
+      "transitionIn": "fade-dark",
+      "chapterBar": false,
+      "props": {
+        "lines": [
+          { "text": "Nuove variabili richieste?", "at": "line1" },
+          { "text": "Manifest nello stesso rilascio", "at": "line2" }
+        ],
+        "keyword": "stesso rilascio",
+        "reminders": [
+          { "icon": "list-checks", "text": "note di rilascio", "at": "notes" },
+          { "icon": "shield-check", "text": "controllo prima del deploy", "at": "check" }
+        ]
+      },
+      "beats": [
+        { "name": "line1", "word": "variabili", "sentence": "s13" },
+        { "name": "line2", "word": "manifest", "sentence": "s13" },
+        { "name": "notes", "word": "note", "sentence": "s14" },
+        { "name": "check", "word": "controllale", "sentence": "s14" }
+      ],
+      "learns": "when a release changes required env vars, update the manifest in the same release",
+      "sources": ["facts.md:74", "facts.md:75", "facts.md:76"]
+    }
+  ]
+}

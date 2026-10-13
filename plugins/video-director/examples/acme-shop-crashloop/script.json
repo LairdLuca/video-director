@@ -1,0 +1,101 @@
+{
+  "language": "it",
+  "chapters": [
+    {
+      "id": "problem",
+      "label": "PROBLEMA"
+    },
+    {
+      "id": "diagnosis",
+      "label": "DIAGNOSI"
+    },
+    {
+      "id": "cause",
+      "label": "CAUSA"
+    },
+    {
+      "id": "fix",
+      "label": "FIX"
+    },
+    {
+      "id": "verify",
+      "label": "VERIFICA"
+    },
+    {
+      "id": "lesson",
+      "label": "LEZIONE"
+    }
+  ],
+  "sentences": [
+    {
+      "id": "s01",
+      "chapter": "problem",
+      "text": "Dopo il deploy della versione 2.4.0, il checkout di acme-shop risponde con errore {503|cinque zero tre}."
+    },
+    {
+      "id": "s02",
+      "chapter": "diagnosis",
+      "text": "Partiamo dai pod, nel namespace {en:shop}."
+    },
+    {
+      "id": "s03",
+      "chapter": "diagnosis",
+      "text": "Il pod di checkout è in CrashLoopBackOff: sei riavvii in otto minuti."
+    },
+    {
+      "id": "s04",
+      "chapter": "diagnosis",
+      "text": "Con kubectl describe vediamo che il container termina con {en:exit code} 1, e {en:kubelet} lo riavvia in back-off."
+    },
+    {
+      "id": "s05",
+      "chapter": "diagnosis",
+      "text": "I log del container precedente dicono il perché: la variabile DATABASE_URL non è impostata."
+    },
+    {
+      "id": "s06",
+      "chapter": "cause",
+      "text": "La 2.4.0 non usa più DB_HOST e DB_PORT: legge la connessione al database da DATABASE_URL."
+    },
+    {
+      "id": "s07",
+      "chapter": "cause",
+      "text": "Ma il manifest del deployment non è stato aggiornato, quindi nel container la variabile non esiste."
+    },
+    {
+      "id": "s08",
+      "chapter": "fix",
+      "text": "La connessione esiste già nel secret checkout-db, alla chiave {en:url}."
+    },
+    {
+      "id": "s09",
+      "chapter": "fix",
+      "text": "Aggiungiamo al container la variabile DATABASE_URL, letta da quel secret."
+    },
+    {
+      "id": "s10",
+      "chapter": "fix",
+      "text": "Poi applichiamo il manifest con kubectl apply, e riavviamo il deployment con {rollout restart|ipa:ɹˈoʊlaʊt ɹᵻstˈɑːɹtt}, così parte un {pod|ipa:pˈɑːd} nuovo."
+    },
+    {
+      "id": "s11",
+      "chapter": "verify",
+      "text": "Il rollout termina con successo e il nuovo {pod|ipa:pˈɒdd} è Running, senza riavvii."
+    },
+    {
+      "id": "s12",
+      "chapter": "verify",
+      "text": "Il checkout risponde di nuovo con {200|duecento}."
+    },
+    {
+      "id": "s13",
+      "chapter": "lesson",
+      "text": "La lezione: se una nuova versione cambia le variabili d'ambiente richieste, il {manifest|ipa:mˈænɪfɛst} va aggiornato nello stesso rilascio."
+    },
+    {
+      "id": "s14",
+      "chapter": "lesson",
+      "text": "Elencale nelle note di rilascio e controllale prima del deploy."
+    }
+  ]
+}

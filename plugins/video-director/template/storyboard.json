@@ -1,0 +1,27 @@
+{
+  "placeholder": true,
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "captions": true,
+  "chapters": [{ "id": "start", "label": "START" }],
+  "shots": [
+    {
+      "id": "sh01",
+      "chapter": "start",
+      "scene": "Lesson",
+      "theme": "dark",
+      "sentences": ["s01"],
+      "props": {
+        "lines": [{ "text": "Placeholder storyboard", "at": "l1" }, { "text": "Write storyboard.json", "at": "l2" }],
+        "keyword": "storyboard.json"
+      },
+      "beats": [
+        { "name": "l1", "word": "Replace" },
+        { "name": "l2", "word": "voice" }
+      ],
+      "learns": "this project still has the template placeholder data",
+      "sources": []
+    }
+  ]
+}

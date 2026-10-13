@@ -1,0 +1,27 @@
+{
+  "_about": "Narration languages and Kokoro v1.0 voices. A voice name starts with its language prefix and f or m. 'speed' is the default Kokoro speed of a voice, set so the narration lands at 2.3-2.7 words per second while speaking; 'rate' says how it was measured. 'names' lists the Kokoro v1.0 voices of a language, as read from the pinned voices-v1.0.bin. Voices without an entry use speed 1.0.",
+  "languages": {
+    "it": { "espeak": "it", "whisper": "it", "prefix": "i", "default": "im_nicola", "tested": true,
+            "sample": "Ciao, sono la voce del video. Il pod di checkout è in CrashLoopBackOff.",
+            "names": ["if_sara", "im_nicola"] },
+    "en": { "espeak": "en-us", "whisper": "en", "prefix": "a", "default": "am_michael", "tested": false,
+            "sample": "Hi, I am the narration voice. The checkout pod is in CrashLoopBackOff.",
+            "names": ["af_alloy", "af_aoede", "af_bella", "af_heart", "af_jessica", "af_kore", "af_nicole", "af_nova", "af_river", "af_sarah", "af_sky", "am_adam", "am_echo", "am_eric", "am_fenrir", "am_liam", "am_michael", "am_onyx", "am_puck", "am_santa"] },
+    "en-gb": { "espeak": "en-gb", "whisper": "en", "prefix": "b", "default": "bm_george", "tested": false,
+            "sample": "Hi, I am the narration voice. The checkout pod is in CrashLoopBackOff.",
+            "names": ["bf_alice", "bf_emma", "bf_isabella", "bf_lily", "bm_daniel", "bm_fable", "bm_george", "bm_lewis"] },
+    "es": { "espeak": "es", "whisper": "es", "prefix": "e", "default": "em_alex", "tested": false,
+            "sample": "Hola, soy la voz del video. El pod de checkout está en CrashLoopBackOff.",
+            "names": ["ef_dora", "em_alex", "em_santa"] },
+    "fr": { "espeak": "fr-fr", "whisper": "fr", "prefix": "f", "default": "ff_siwis", "tested": false,
+            "sample": "Bonjour, je suis la voix de la vidéo. Le pod de checkout est en CrashLoopBackOff.",
+            "names": ["ff_siwis"] },
+    "pt": { "espeak": "pt-br", "whisper": "pt", "prefix": "p", "default": "pm_alex", "tested": false,
+            "sample": "Olá, eu sou a voz do vídeo. O pod de checkout está em CrashLoopBackOff.",
+            "names": ["pf_dora", "pm_alex", "pm_santa"] }
+  },
+  "voices": {
+    "im_nicola": { "speed": 1.15, "rate": "2.39 words/s on a 14-sentence Italian narration (2.20 at 1.0, 2.32 at 1.1)" },
+    "if_sara": { "speed": 1.0, "rate": "2.49 words/s on the same narration (2.42 at 0.95, 2.56 at 1.05)" }
+  }
+}

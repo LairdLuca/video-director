@@ -1,0 +1,136 @@
+{
+  "title": "acme-shop: checkout in CrashLoopBackOff dopo il deploy 2.4.0",
+  "language": "it",
+  "summary": "Dopo il deploy della versione 2.4.0, il checkout di acme-shop rispondeva con errore 503: il pod di checkout era in CrashLoopBackOff perché la nuova versione legge la connessione al database da `DATABASE_URL`, una variabile che il manifest del deployment non definiva. Il fix aggiunge la variabile dal secret `checkout-db`; dopo il riavvio il pod è Running e il checkout risponde di nuovo con 200.",
+  "video": "acme-shop-crashloop.mp4",
+  "sections": [
+    {
+      "chapter": "problem",
+      "heading": "Il checkout risponde 503",
+      "body": "Dopo il deploy della versione `checkout:2.4.0`, il checkout del sito risponde con errore 503.",
+      "commands": []
+    },
+    {
+      "chapter": "diagnosis",
+      "heading": "Il pod non resta in piedi",
+      "body": [
+        "Il pod di checkout è in `CrashLoopBackOff`, con 6 riavvii in 8 minuti.",
+        "Il container termina con exit code 1 e kubelet lo riavvia in back-off. I log del container precedente dicono il perché: `DATABASE_URL` non è impostata."
+      ],
+      "commands": [
+        {
+          "text": "$ kubectl get pods -n shop",
+          "source": "facts.md:14"
+        },
+        {
+          "text": "$ kubectl describe pod checkout-7d9f8c6b5-x2kqp -n shop",
+          "source": "facts.md:22"
+        },
+        {
+          "text": "$ kubectl logs checkout-7d9f8c6b5-x2kqp -n shop --previous\nStarting checkout service v2.4.0\nError: required environment variable DATABASE_URL is not set",
+          "source": "facts.md:34-36"
+        }
+      ]
+    },
+    {
+      "chapter": "cause",
+      "heading": "Una variabile nuova, un manifest vecchio",
+      "body": "La versione 2.4.0 legge la connessione al database da `DATABASE_URL` (prima usava `DB_HOST` e `DB_PORT`). Il manifest del deployment non è stato aggiornato, quindi la variabile non esiste nel container.",
+      "commands": []
+    },
+    {
+      "chapter": "fix",
+      "heading": "La variabile, dal secret che esiste già",
+      "body": "La connessione esiste già nel secret `checkout-db`, alla chiave `url`. Si aggiunge la variabile al container `checkout`, poi si applica il manifest e si riavvia il deployment.",
+      "commands": [
+        {
+          "text": "env:\n  - name: DATABASE_URL\n    valueFrom:\n      secretKeyRef:\n        name: checkout-db\n        key: url",
+          "source": "facts.md:48-53"
+        },
+        {
+          "text": "$ kubectl apply -f checkout-deployment.yaml -n shop\n$ kubectl rollout restart deployment/checkout -n shop",
+          "source": "facts.md:57-60"
+        }
+      ]
+    },
+    {
+      "chapter": "verify",
+      "heading": "Running, senza riavvii",
+      "body": "Il rollout termina con successo, il nuovo pod è Running con 0 riavvii e il checkout risponde di nuovo con 200.",
+      "commands": [
+        {
+          "text": "$ kubectl rollout status deployment/checkout -n shop",
+          "source": "facts.md:65"
+        },
+        {
+          "text": "$ kubectl get pods -n shop -l app=checkout",
+          "source": "facts.md:67"
+        }
+      ]
+    },
+    {
+      "chapter": "lesson",
+      "heading": "Variabili richieste e manifest nello stesso rilascio",
+      "body": "Quando una nuova versione cambia le variabili d'ambiente richieste, il manifest va aggiornato nello stesso rilascio: le variabili vanno elencate nelle note di rilascio e controllate prima del deploy.",
+      "commands": []
+    }
+  ],
+  "transcript": [
+    {
+      "chapter": "problem",
+      "text": "Dopo il deploy della versione 2.4.0, il checkout di acme-shop risponde con errore 503."
+    },
+    {
+      "chapter": "diagnosis",
+      "text": "Partiamo dai pod, nel namespace shop."
+    },
+    {
+      "chapter": "diagnosis",
+      "text": "Il pod di checkout è in CrashLoopBackOff: sei riavvii in otto minuti."
+    },
+    {
+      "chapter": "diagnosis",
+      "text": "Con kubectl describe vediamo che il container termina con exit code 1, e kubelet lo riavvia in back-off."
+    },
+    {
+      "chapter": "diagnosis",
+      "text": "I log del container precedente dicono il perché: la variabile DATABASE_URL non è impostata."
+    },
+    {
+      "chapter": "cause",
+      "text": "La 2.4.0 non usa più DB_HOST e DB_PORT: legge la connessione al database da DATABASE_URL."
+    },
+    {
+      "chapter": "cause",
+      "text": "Ma il manifest del deployment non è stato aggiornato, quindi nel container la variabile non esiste."
+    },
+    {
+      "chapter": "fix",
+      "text": "La connessione esiste già nel secret checkout-db, alla chiave url."
+    },
+    {
+      "chapter": "fix",
+      "text": "Aggiungiamo al container la variabile DATABASE_URL, letta da quel secret."
+    },
+    {
+      "chapter": "fix",
+      "text": "Poi applichiamo il manifest con kubectl apply, e riavviamo il deployment con rollout restart, così parte un pod nuovo."
+    },
+    {
+      "chapter": "verify",
+      "text": "Il rollout termina con successo e il nuovo pod è Running, senza riavvii."
+    },
+    {
+      "chapter": "verify",
+      "text": "Il checkout risponde di nuovo con 200."
+    },
+    {
+      "chapter": "lesson",
+      "text": "La lezione: se una nuova versione cambia le variabili d'ambiente richieste, il manifest va aggiornato nello stesso rilascio."
+    },
+    {
+      "chapter": "lesson",
+      "text": "Elencale nelle note di rilascio e controllale prima del deploy."
+    }
+  ]
+}
