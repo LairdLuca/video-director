@@ -1,5 +1,5 @@
 {
-  "name": "video-director",
+  "name": "video-director-explainer",
   "description": "Narrated explainer videos made with Remotion, from facts to a rendered MP4",
   "owner": {
     "name": "LairdLuca",
@@ -7,17 +7,17 @@
   },
   "plugins": [
     {
-      "name": "video-director",
+      "name": "video-director-explainer",
       "description": "Teaches Claude to turn facts into a short narrated explainer video (Remotion, local voice, captions, chapter bar, generated music; 16:9, 9:16 or 1:1) and a companion HTML page",
       "author": {
         "name": "LairdLuca",
         "url": "https://github.com/LairdLuca"
       },
-      "source": "./plugins/video-director",
+      "source": "./plugins/video-director-explainer",
       "category": "productivity",
-      "version": "0.2.0",
+      "version": "1.0.0",
       "keywords": ["video", "remotion", "explainer", "narration", "devops"],
-      "homepage": "https://github.com/LairdLuca/video-director/tree/main/plugins/video-director"
+      "homepage": "https://github.com/LairdLuca/video-director-explainer/tree/main/plugins/video-director-explainer"
     }
   ]
 }

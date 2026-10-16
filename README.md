@@ -1,6 +1,6 @@
-# video-director
+# video-director-explainer
 
-**Version 0.2.0**, see the [changelog](CHANGELOG.md).
+**Version 1.0.0**, see the [changelog](CHANGELOG.md).
 
 A Claude Code plugin that teaches Claude to make a **short narrated explainer
 video** from facts: a DevOps how-to ("how we fixed X"), a report of work done,
@@ -25,7 +25,7 @@ music, nothing uploaded, no administrator rights.
 
 The style comes from earlier test videos of one brief, a 90-second
 explainer; the rules are in
-[`skills/make/references/style.md`](plugins/video-director/skills/make/references/style.md).
+[`skills/make/references/style.md`](plugins/video-director-explainer/skills/make/references/style.md).
 In short:
 
 - **one subject per frame, big**: a terminal across the frame, a 2-4 node
@@ -58,8 +58,8 @@ In short:
 From GitHub:
 
 ```
-/plugin marketplace add LairdLuca/video-director
-/plugin install video-director@video-director
+/plugin marketplace add LairdLuca/video-director-explainer
+/plugin install video-director-explainer@video-director-explainer
 ```
 
 From a local clone: `/plugin marketplace add <path to the clone>`, then the
@@ -68,7 +68,7 @@ same `install` line.
 Then run the setup once:
 
 ```
-/video-director:setup
+/video-director-explainer:setup
 ```
 
 It checks your machine, builds the voice runtime and the models at user
@@ -100,7 +100,7 @@ choice is a key of the plugin's config:
 | `modelsDir`, `runtimeDir` | The voice models (setup asks whether you already have them) and the Python venv of the voice step | in the plugin's data folder |
 
 Every key, its values and the phrases that change it for one video are in
-[`config.md`](plugins/video-director/skills/setup/references/config.md).
+[`config.md`](plugins/video-director-explainer/skills/setup/references/config.md).
 The answers are saved in the plugin's data folder and survive updates. Run
 setup again to change them. **Any choice can be changed for a single video**
 just by asking: "without captions", "female voice", "no page", "don't open it",
@@ -137,7 +137,7 @@ Remotion checks that download, not a sha256 of this plugin.
 
 ## How a video is made
 
-`/video-director:make`, or just ask for a video. The steps:
+`/video-director-explainer:make`, or just ask for a video. The steps:
 
 1. **Facts** into `facts.md`, each with its source: the conversation, git
    (log, diff, commits) or markdown files. Nothing is invented; a gap is
@@ -174,17 +174,17 @@ few seconds), plus the time Claude spends writing. Timed test runs, writing and 
 
 A complete example (facts, narration with its pronunciation fixes and
 lexicon, storyboard, page data) is in
-[`plugins/video-director/examples/acme-shop-crashloop/`](plugins/video-director/examples/acme-shop-crashloop/).
+[`plugins/video-director-explainer/examples/acme-shop-crashloop/`](plugins/video-director-explainer/examples/acme-shop-crashloop/).
 
 ## Remotion license
 
-video-director is MIT. It uses [Remotion](https://www.remotion.dev) to render
+video-director-explainer is MIT. It uses [Remotion](https://www.remotion.dev) to render
 the videos, and **Remotion has its own license, which is not MIT**. Remotion
 is free for individuals, for-profit organizations with up to 3 employees,
 non-profits, and for evaluation; larger for-profit organizations need a
 Remotion company license. Read the
 [Remotion license](https://www.remotion.dev/license) before using
-video-director at work, and buy a company license if it applies to you. The
+video-director-explainer at work, and buy a company license if it applies to you. The
 plugin does not pass a license key, so Remotion sends no usage event.
 
 The other third-party pieces (fonts, icons, voice and speech models, Python
@@ -222,11 +222,11 @@ License.
 
 ```
 .claude-plugin/marketplace.json      this repository is a one-plugin marketplace
-plugins/video-director/
+plugins/video-director-explainer/
   .claude-plugin/plugin.json
   README.md                          how the plugin is built
-  skills/setup/                      /video-director:setup
-  skills/make/                       /video-director:make, and its references
+  skills/setup/                      /video-director-explainer:setup
+  skills/make/                       /video-director-explainer:make, and its references
   template/                          the Remotion project copied for each video
   scripts/                           Node scripts: new video, config, fonts, voice, lint, stills, freeze, audio, render, page, open
   voice/                             the Python voice module (Kokoro + Whisper)

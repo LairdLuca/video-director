@@ -1,6 +1,6 @@
 # Third-party notices
 
-video-director is MIT (see [LICENSE](LICENSE)). This file lists what it
+video-director-explainer is MIT (see [LICENSE](LICENSE)). This file lists what it
 installs and uses, and under which license. The repository itself ships no
 third-party code, font, icon, sound or model file: everything below is a
 package or a model that setup and each video install on the user's machine

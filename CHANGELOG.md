@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.0.0 (2026-10-17)
+
+**Renamed: the plugin is now `video-director-explainer`.** The old name
+was too generic. This is the first stable release, under the new name. The
+commands are `/video-director-explainer:setup` and
+`/video-director-explainer:make`, the plugin folder is
+`plugins/video-director-explainer/`, and the repository is
+`LairdLuca/video-director-explainer`.
+
+- **Run setup again.** Claude Code keeps a plugin's data in a folder named
+  after the plugin, so the install choices, the voice runtime and the models
+  of `video-director` are not seen by the new name. Setup makes them again
+  (the models download again, about 840 MB). The old data folder,
+  `video-director-video-director`, can then be deleted.
+- Video projects made with 0.2.0 keep working. Running `new-video` again on
+  one runs `npm ci` once more, because its install marker carries the plugin
+  name.
+- No other change in behaviour.
+
 ## 0.2.0 (2026-10-16)
 
 **Not compatible with 0.1.0 video projects.** The lint and the scripts now

@@ -1,0 +1,31 @@
+{
+  "name": "video-director-explainer-video",
+  "version": "1.0.0",
+  "description": "A data-driven Remotion project: storyboard.json and voiceover.json in, a narrated video out",
+  "private": true,
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "@fontsource/inter": "5.2.8",
+    "@fontsource/jetbrains-mono": "5.2.8",
+    "@remotion/cli": "4.0.535",
+    "@remotion/fonts": "4.0.535",
+    "@remotion/renderer": "4.0.535",
+    "@remotion/transitions": "4.0.535",
+    "lucide-react": "1.47.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.535"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.7",
+    "typescript": "5.9.3"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "overrides": {
+    "caniuse-lite": "1.0.30001815",
+    "electron-to-chromium": "1.5.452"
+  }
+}
