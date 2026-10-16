@@ -17,6 +17,7 @@ import {
   sweepBrowsers,
   browserPids,
 } from "./common.mjs";
+import { writeFontModule } from "./fonts.mjs";
 import { writeIconModule } from "./icons.mjs";
 
 const newest = (dir) => {
@@ -36,6 +37,8 @@ const newest = (dir) => {
 export const bundle = async (videoDir, { force = false } = {}) => {
   const icons = writeIconModule(videoDir, readJson(path.join(videoDir, "storyboard.json")));
   if (icons.missing.length) die(`unknown icons: ${icons.missing.join(", ")} (run lint-storyboard)`, 1);
+  const font = writeFontModule(videoDir);
+  if (font.missing.length) die(`font file ${font.missing.join(", ")} not found (run lint-storyboard)`, 1);
   const out = path.join(videoDir, "qa", "bundle");
   const marker = path.join(out, "index.html");
   const inputs = Math.max(

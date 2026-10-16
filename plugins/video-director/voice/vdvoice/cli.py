@@ -19,7 +19,7 @@ import time
 from pathlib import Path
 
 from . import __version__
-from .markup import EN, IPA, load_glossary, normalize_spoken, parse, shown_text
+from .markup import EN, IPA, code_words, load_code_terms, load_glossary, normalize_spoken, parse, shown_text
 
 HERE = Path(__file__).resolve().parent
 DATA = HERE.parent / "data"
@@ -61,9 +61,12 @@ class Voice:
         self.lang = language(lang_code)
         self.main_lang = self.lang["espeak"]
         glossary = load_glossary(args.glossary) if args.glossary else []
+        code_terms = load_code_terms(args.glossary) if args.glossary else []
         for extra in args.glossary_extra or []:
             glossary += load_glossary(extra)
+            code_terms += load_code_terms(extra)
         self.glossary = glossary
+        self.code_terms = code_terms
         lexicon = load_lexicon(args.lexicon) if args.lexicon else {}
         for extra in args.lexicon_extra or []:
             lexicon.update(load_lexicon(extra))
@@ -80,6 +83,10 @@ class Voice:
         phonemes, pieces = self.ph.sentence(segments)
         return {"segments": segments, "pieces": pieces, "shown": shown_text(segments), "phonemes": phonemes}
 
+    def code_words(self, text: str) -> list[bool]:
+        """Which shown words are code (commands, file names, identifiers)."""
+        return code_words(text, self.glossary, self.code_terms)
+
     def lexicon_keys(self, text: str) -> list[str]:
         return self.ph.lexicon_keys(text)
 
@@ -95,23 +102,30 @@ class Voice:
         base = [seg.shown, *self.ph.say(seg.shown)] if seg.lang == IPA else [seg.shown, seg.spoken, *self.ph.say(seg.spoken)]
         return "|".join(dict.fromkeys(form for b in base for form in symbol_readings(b)))
 
-    def spoken_words(self, text: str) -> int:
+    def spoken_words(self, text: str) -> float:
         """Words of the spoken side ("2.4.0" is "2 punto 4 punto 0", five words).
 
-        A part whose shown text has an acronym counts its shown words: letter
-        names are short, and "{SSO|esse esse o}" counted as three words
-        pushed a test video's pace over the target with nothing too fast.
+        An acronym weighs half a word per letter, at least one word
+        (acronym_weight): "SSO" is 1.5, "API" 1.5, "HTTP" 2, "F5" 1. A part
+        whose shown text has an acronym spelled on the spoken side
+        ("{SSO|esse esse o}") counts its shown words with that weight: letter
+        names are short, and counting one word per letter pushed a test
+        video's pace over the target with nothing too fast, while counting
+        one word per acronym left it too low. An acronym left as it is in
+        the text weighs the same; one said as a word ("{RAM|ram}") and the
+        capitals inside an identifier ("DB_HOST") count as words.
         """
-        from .script import is_acronym
+        from .script import acronym_weight, is_acronym
 
-        n = 0
+        n = 0.0
         for seg in self.segments(text):
-            spoken = len(seg.spoken.split())
+            spoken = seg.spoken.split()
             shown = seg.shown.split()
-            if seg.source == "explicit" and any(is_acronym(w) for w in shown) and spoken > len(shown):
-                n += len(shown)
+            if seg.source == "explicit" and any(is_acronym(w) for w in shown) and len(spoken) > len(shown):
+                n += sum(acronym_weight(w) for w in shown)
             else:
-                n += spoken
+                said = {w.strip(".,;:!?()") for w in spoken}
+                n += len(spoken) + sum(acronym_weight(w) - 1 for w in shown if is_acronym(w) and w.strip(".,;:!?()") in said)
         return n
 
     def forced(self, seg) -> bool:
@@ -295,6 +309,13 @@ def cmd_script(args) -> int:
             note = f"synth {r['synth_s']:.1f} s" + (f", check {r['whisper_s']:.1f} s" if transcriber else "")
         entry["chapter"] = s["chapter"]
         entry["pauseAfterMs"] = pause_after(sentences, i)
+        # Code words, marked again on every run (the glossary may have changed):
+        # the captions draw them in the code font
+        for w, code in zip(entry["words"], voice.code_words(s["text"])):
+            if code:
+                w["code"] = True
+            else:
+                w.pop("code", None)
         vo_sentences.append(entry)
         report_sentences.append(rep)
         missing = entry.get("notHeard") or []
@@ -458,6 +479,55 @@ def read_lines(path: Path) -> list[dict]:
     return [{"id": f"{i:03d}", "text": line} for i, line in enumerate(lines, 1)]
 
 
+# Spoken words per second at a voice's default speed, measured on the dense
+# technical narrations of the test videos (im_nicola at 1.15: 2.75, 2.82 and
+# 2.85; at 1.10: 2.72 and 2.73; at 1.05: 2.66); the pace follows the speed to
+# the power 0.6. Other voices use the same figures until measured.
+ESTIMATE_PACE = 2.80
+ESTIMATE_SPEED_POWER = 0.6
+
+
+def estimated_pace(voice: str, speed: float) -> float:
+    return ESTIMATE_PACE * (speed / default_speed(voice)) ** ESTIMATE_SPEED_POWER
+
+
+def cmd_estimate(args) -> int:
+    """Length and pace of a script before any synthesis, from its spoken words."""
+    from .script import LEAD_IN_MS, TAIL_MS, ScriptError, load_script, pause_after
+
+    try:
+        script = load_script(args.script)
+    except ScriptError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    voice = Voice(args, script["language"])
+    speed = args.speed if args.speed else default_speed(args.voice)
+    pace = estimated_pace(args.voice, speed)
+    sentences = script["sentences"]
+    rows = []
+    for i, s in enumerate(sentences):
+        spoken = voice.spoken_words(s["text"])
+        shown = len(voice.prepare(s["text"])["shown"].split())
+        rows.append({"id": s["id"], "spokenWords": round(spoken, 1), "shownWords": shown,
+                     "speechMs": round(spoken / pace * 1000), "pauseAfterMs": pause_after(sentences, i)})
+    speech_ms = sum(r["speechMs"] for r in rows)
+    result = {
+        "voice": args.voice,
+        "speed": speed,
+        "estimated": True,
+        "spokenWords": round(sum(r["spokenWords"] for r in rows), 1),
+        "shownWords": sum(r["shownWords"] for r in rows),
+        "spokenWordsPerSecond": round(pace, 2),
+        "speechMs": speech_ms,
+        "videoMs": LEAD_IN_MS + sum(r["speechMs"] + r["pauseAfterMs"] for r in rows) + TAIL_MS,
+        "sentences": rows,
+    }
+    if args.out:
+        write_json(Path(args.out), result)
+    print(json.dumps({k: v for k, v in result.items() if k != "sentences"}, ensure_ascii=False))
+    return 0
+
+
 def cmd_phonemes(args) -> int:
     voice = Voice(args, args.lang)
     for item in read_lines(Path(args.input)):
@@ -566,6 +636,14 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--whisper-model")
     sp.add_argument("--tmp")
     sp.set_defaults(func=cmd_check, tmp_default=lambda a: Path.cwd() / ".espeak-tmp")
+
+    sp = sub.add_parser("estimate", help="length and pace of a script, without synthesis")
+    sp.add_argument("script", help="script.json (contract A)")
+    sp.add_argument("--voice", default="im_nicola")
+    sp.add_argument("--speed", type=float, help="Kokoro speed (default: the voice's own)")
+    sp.add_argument("--out", help="JSON to write (default: print only)")
+    text_options(sp)
+    sp.set_defaults(func=cmd_estimate, tmp_default=lambda a: Path(a.script).resolve().parent / "qa" / ".espeak-tmp")
 
     sp = sub.add_parser("phonemes", help="print segments and phonemes, no audio")
     sp.add_argument("input", help="marked lines: .txt (one each) or .json [{id, text}]")

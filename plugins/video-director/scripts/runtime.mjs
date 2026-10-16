@@ -9,7 +9,7 @@ import os from "node:os";
 import path from "node:path";
 import { die, IS_WIN, parseArgs, PLUGIN_DIR, printHelp, run, slash, which } from "./lib/common.mjs";
 import { dataDirOf, loadConfig, resolveConfig, voicesTable } from "./config.mjs";
-import { download, fileId, findCandidates, locateModels, MODEL_FILES, sha256File, venvPython, voiceEnv, writeManifest } from "./lib/models.mjs";
+import { download, fileId, findCandidates, locateModels, MANIFEST, MODEL_FILES, sha256File, venvPython, voiceEnv, writeManifest } from "./lib/models.mjs";
 
 const HELP = `
 Usage:
@@ -175,7 +175,8 @@ const doctor = (args) => {
   // Name the folders that hold the files: models found elsewhere with --from
   // stay where they are, and the data folder only keeps the manifest
   const folders = [...new Set(Object.values(models.files).filter(Boolean).map((f) => slash(path.dirname(f))))];
-  add("models", !models.missing.length, models.missing.length ? `missing in ${slash(modelsDir)}: ${models.missing.join(", ")}` : `all ${MODEL_FILES.length} files found in ${folders.join(", ")}`,
+  const gone = models.missing.length && models.goneFolders.length ? `; ${slash(path.join(modelsDir, MANIFEST))} points to ${models.goneFolders.join(", ")}, which no longer exist${models.goneFolders.length > 1 ? "" : "s"}` : "";
+  add("models", !models.missing.length, models.missing.length ? `missing in ${slash(modelsDir)}: ${models.missing.join(", ")}${gone}` : `all ${MODEL_FILES.length} files found in ${folders.join(", ")}`,
     models.missing.length ? "node runtime.mjs models [--from <folder with the models>]" : null, true);
 
   // Not required: with no config.json every default applies; setup writes it.

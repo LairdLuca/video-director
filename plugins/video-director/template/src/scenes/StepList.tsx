@@ -3,16 +3,11 @@ import { useCurrentFrame, useVideoConfig } from "remotion";
 import { Icon, Mark } from "../components/primitives";
 import { StageFrame } from "../components/Stage";
 import { arrive, ease, lerp, tween } from "../motion";
+import { stepList } from "../lib/layout.mjs";
 import { useBeat, useShot } from "../shot";
-import { BAND, TYPE } from "../theme";
 
 export type StepItem = { text: string; icon?: string; at: string; done?: boolean };
 export type StepListProps = { items: StepItem[]; ordered?: boolean; title?: string };
-
-// Inter's average advance on mixed text, as a fraction of the font size; an
-// estimate used only to shrink a long item so it stays on one line.
-const SANS_ADVANCE = 0.53;
-const MAX_WIDTH = 1920 - 2 * BAND.textMargin;
 
 /**
  * Numbered steps or a checklist (catalogue 2.7). At most 5 items.
@@ -24,22 +19,18 @@ const MAX_WIDTH = 1920 - 2 * BAND.textMargin;
  * so the block never moves while the list builds.
  */
 export const StepList: React.FC = () => {
-  const { shot, c } = useShot();
+  const { shot, c, L } = useShot();
   const beat = useBeat();
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const props = shot.props as StepListProps;
   const items = (props.items ?? []).slice(0, 5);
   const ordered = props.ordered !== false;
-  const few = items.length <= 3;
-  const disc = few ? 104 : 88;
-  const gap = few ? 44 : 40;
+  // The text shrinks so the longest item stays on one line, and wraps to two
+  // lines at the 28 px minimum (lib/layout.mjs).
+  const { few, disc, gap, tick: tickSize, textSize, room, wrap } = stepList(L, items);
   const rowH = few ? 150 : 120;
-  const tickSize = few ? 64 : 56;
-  const longest = Math.max(1, ...items.map((it) => it.text.length));
-  const room = MAX_WIDTH - disc - gap - (items.some((it) => it.done) ? tickSize + gap : 0);
-  const textSize = Math.max(TYPE.min, Math.min(few ? 66 : 54, Math.floor(room / (longest * SANS_ADVANCE))));
-  const titleSize = few ? 80 : 64;
+  const titleSize = L.narrow ? (few ? 68 : 56) : few ? 80 : 64;
   const ats = items.map((it) => beat(it.at));
   const current = ats.filter((a) => frame >= a).length - 1;
   // The title is on screen from the first frame: the incoming transition
@@ -61,10 +52,10 @@ export const StepList: React.FC = () => {
       <div
         style={{
           position: "absolute",
-          left: BAND.textMargin,
-          right: BAND.textMargin,
-          top: BAND.stageTop,
-          bottom: 1080 - BAND.stageBottom,
+          left: L.textMargin,
+          right: L.textMargin,
+          top: L.stageTop,
+          bottom: L.height - L.stageBottom,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -135,7 +126,10 @@ export const StepList: React.FC = () => {
                       height: disc,
                       display: "flex",
                       alignItems: "center",
-                      whiteSpace: "nowrap",
+                      // At the 28 px minimum a long item wraps to two lines
+                      whiteSpace: wrap ? "normal" : "nowrap",
+                      maxWidth: room,
+                      lineHeight: 1.15,
                       fontSize: textSize,
                       fontWeight: isCurrent ? 600 : 400,
                       color: isCurrent ? c.ink : c.muted,

@@ -6,10 +6,11 @@ import { ease, lerp } from "./motion";
 import { palettes } from "./theme";
 
 // Two or three transition types per film (style rule 29). Every cut is
-// treated; the overlap is centred on the cut by the timeline.
+// treated; the overlap is centred on the cut by the timeline. Between a light
+// and a dark shot the timeline turns a push into a crossfade.
 
-// One props type for all three presentations; only push reads it.
-type PushProps = { blurOut: boolean };
+// One props type for all presentations; push reads blurOut, wipe the width.
+type PushProps = { blurOut: boolean; width: number };
 
 // push hands over in sequence, not as a cross-fade: the outgoing shot is gone
 // by 45% of the transition and the incoming one starts at 40%, so the two are
@@ -50,12 +51,14 @@ const Wipe: React.FC<TransitionPresentationComponentProps<PushProps>> = ({
   children,
   presentationDirection,
   presentationProgress,
+  passedProps,
 }) => {
   if (presentationDirection === "exiting") return <AbsoluteFill>{children}</AbsoluteFill>;
-  const x = presentationProgress * 1920;
+  const w = passedProps.width;
+  const x = presentationProgress * w;
   return (
     <AbsoluteFill>
-      <AbsoluteFill style={{ clipPath: `inset(0 ${1920 - x}px 0 0)` }}>{children}</AbsoluteFill>
+      <AbsoluteFill style={{ clipPath: `inset(0 ${w - x}px 0 0)` }}>{children}</AbsoluteFill>
       {presentationProgress > 0 && presentationProgress < 1 ? (
         <div style={{ position: "absolute", top: 0, bottom: 0, left: x - 6, width: 12, backgroundColor: palettes.light.accent }} />
       ) : null}
@@ -80,14 +83,31 @@ const FadeDark: React.FC<TransitionPresentationComponentProps<PushProps>> = ({
   return <AbsoluteFill style={{ opacity: Math.max(0, p * 2 - 1) }}>{children}</AbsoluteFill>;
 };
 
-const push = (blurOut: boolean): TransitionPresentation<PushProps> => ({ component: Push, props: { blurOut } });
-const wipe = (): TransitionPresentation<PushProps> => ({ component: Wipe, props: { blurOut: false } });
-const fadeDark = (): TransitionPresentation<PushProps> => ({ component: FadeDark, props: { blurOut: false } });
+/**
+ * crossfade: the incoming shot fades in over the outgoing one, which stays
+ * opaque underneath, so no stage colour shows through: between a light and a
+ * dark shot, a push showed two almost transparent shots over the film's
+ * background at its hand-over, and the theme switch read as a flash.
+ */
+const Crossfade: React.FC<TransitionPresentationComponentProps<PushProps>> = ({
+  children,
+  presentationDirection,
+  presentationProgress,
+}) => {
+  if (presentationDirection === "exiting") return <AbsoluteFill>{children}</AbsoluteFill>;
+  return <AbsoluteFill style={{ opacity: presentationProgress }}>{children}</AbsoluteFill>;
+};
+
+const push = (blurOut: boolean, width: number): TransitionPresentation<PushProps> => ({ component: Push, props: { blurOut, width } });
+const wipe = (width: number): TransitionPresentation<PushProps> => ({ component: Wipe, props: { blurOut: false, width } });
+const fadeDark = (width: number): TransitionPresentation<PushProps> => ({ component: FadeDark, props: { blurOut: false, width } });
+const crossfade = (width: number): TransitionPresentation<PushProps> => ({ component: Crossfade, props: { blurOut: false, width } });
 
 /** Presentation and timing for the transition into a shot. */
-export const transitionFor = (name: TransitionName, leavingDark: boolean) => {
+export const transitionFor = (name: TransitionName, leavingDark: boolean, width: number) => {
   const durationInFrames = TRANSITIONS[name] ?? TRANSITIONS.push;
-  if (name === "wipe") return { presentation: wipe(), timing: linearTiming({ durationInFrames, easing: ease.inOut }) };
-  if (name === "fade-dark") return { presentation: fadeDark(), timing: linearTiming({ durationInFrames }) };
-  return { presentation: push(leavingDark), timing: linearTiming({ durationInFrames, easing: ease.sine }) };
+  if (name === "wipe") return { presentation: wipe(width), timing: linearTiming({ durationInFrames, easing: ease.inOut }) };
+  if (name === "fade-dark") return { presentation: fadeDark(width), timing: linearTiming({ durationInFrames }) };
+  if (name === "crossfade") return { presentation: crossfade(width), timing: linearTiming({ durationInFrames, easing: ease.sine }) };
+  return { presentation: push(leavingDark, width), timing: linearTiming({ durationInFrames, easing: ease.sine }) };
 };

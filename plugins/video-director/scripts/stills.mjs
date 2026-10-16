@@ -20,7 +20,8 @@ Stills never fall in the outgoing transition or the end fade: they move
 back to the last frame the shot is fully on screen.
 Each still carries a small label (shot, beat, time) in the bottom-right
 corner. Stills: qa/stills/NNNN.jpg; sheets: qa/contact-sheet-NN.jpg (6x5
-tiles); index: qa/stills.json. A full run deletes the old sheets and every
+tiles of 480 px for 16:9, 6x5 of 400 px for 1:1, 8x3 of 300 px for 9:16);
+index: qa/stills.json. A full run deletes the old sheets and every
 qa/shot-<id>/ folder first, so the sheets always show the current film.
 
   --shot <ids>  only these shots, comma-separated (--shot sh01,sh06), with one
@@ -117,7 +118,9 @@ const main = async () => {
   const r = await renderStills(videoDir, b.dir, stills, { scale, cli: Boolean(args.cli) });
   console.log(`${stills.length} stills in ${(r.ms / 1000).toFixed(1)} s`);
   for (const g of groups) {
-    const sheets = await contactSheets(ffmpeg, g.stillsDir, g.stills.length, path.join(g.outDir, "contact-sheet"));
+    // A sheet stays about 2400-2900 px wide whatever the frame's shape.
+    const tiles = timeline.height > timeline.width ? { cols: 8, rows: 3, tileW: 300 } : timeline.height === timeline.width ? { cols: 6, rows: 5, tileW: 400 } : {};
+    const sheets = await contactSheets(ffmpeg, g.stillsDir, g.stills.length, path.join(g.outDir, "contact-sheet"), tiles);
     for (const s of sheets) console.log(`contact sheet: ${s}`);
     writeJson(path.join(g.outDir, "stills.json"), {
       fps,

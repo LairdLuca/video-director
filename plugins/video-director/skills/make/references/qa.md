@@ -3,10 +3,9 @@
 Three checks before the render and one after it. None of the first three
 needs a full render: they run on single frames, in minutes.
 
-Where this comes from: in a comparison of six video tools, the defects that
-cost the most time (a frozen background, a layout bug) were visible on single
-frames, while one tool spent about 70 minutes on a full re-render to find
-them. The reviews that caught real problems were done by a reader who had not
+Where this comes from: seen in test runs, the defects that cost the most
+time (a frozen background, a layout bug) were visible on single frames,
+while one run spent about 70 minutes on a full re-render to find them. The reviews that caught real problems were done by a reader who had not
 written the video.
 
 | Check | Script | When | Typical time (16 GB laptop, 90 s video) |
@@ -43,7 +42,7 @@ node "<plugin>/scripts/stills.mjs" <videoDir> [--shot sh03[,sh05,...]]
 - Each still carries a label in the bottom-right corner: index, shot, time,
   what it shows (`07 sh02 14.3s beat crash`).
 - Output: `qa/stills/NNNN.jpg`, sheets `qa/contact-sheet-01.jpg`, `-02`...
-  (6x5 tiles), index `qa/stills.json`. A full run deletes the old sheets and
+  (6x5 tiles for 16:9 and 1:1, 8x3 for 9:16), index `qa/stills.json`. A full run deletes the old sheets and
   the `qa/shot-<id>/` folders first.
 - With `--shot <id>` everything goes to `qa/shot-<id>/` (`stills/`,
   `contact-sheet-NN.jpg`, `stills.json`) and the full set in `qa/` is left
@@ -62,20 +61,28 @@ and check for each shot:
    but the caption. A short list, a card or a small diagram sits in the
    middle of the stage, not in its top left (style rule 5); a slab value
    stays inside its card.
-2. Every text readable at the tile size; nothing cut at an edge or overlapping.
+2. Every text readable at the tile size; nothing cut at an edge or
+   overlapping. On 9:16 and 1:1 look at the right edge of terminals and
+   code, and at stacked layouts (flow and slab, card and slab) against the
+   caption band.
 3. The beat stills show the element named by the beat, landed; the stills
    before a beat do not show it yet. The `settled` still shows the
    follow-ons (cross, tick, captions under a slab).
-4. The caption is the shown text (exact terms), short, not over the stage.
+4. The caption is the shown text (exact terms), short, not over the stage;
+   commands, file names and identifiers in it are in the mono font, the
+   other words are not.
 5. Colours: one accent, red or green only on status lines.
-6. The chapter bar shows the right chapter (hidden where `chapterBar: false`).
+6. The chapter bar shows every chapter and the right one filling (hidden
+   where `chapterBar: false`); with parts, the chapters of the current part
+   above and the right part below. No label cut or touching the next one.
 7. No stray glyph, empty icon box, or placeholder text.
 8. Transition stills: the outgoing shot is nearly gone or the incoming one
    barely there; never two full layouts on top of each other, no flash.
-   Between a light and a dark shot the still sits at the hand-over: the
-   stage is in the incoming theme's colour with faint traces of both
-   layouts. A mid-grey stage there is a defect (it was, before the theme
-   switch moved to the hand-over).
+   Between a light and a dark shot the transition is a crossfade: the
+   still shows the two shots blended evenly, the incoming one over the
+   outgoing one, and the chapter bar and caption in between colours. A push
+   (the outgoing shot growing and fading) between light and dark is a
+   defect.
 
 Fix what is wrong in the storyboard (or the custom scene), run the lint, and
 run `stills.mjs --shot <id>` for the shots you changed (read
@@ -108,6 +115,31 @@ voice WAVs are peak-normalized, so the narration's peak sits about 15 dB
 over its loudness, more than the 12.5 dB that -14 LUFS under -1.5 dBTP
 allows, and loudnorm limits instead of applying one gain. Nothing to fix.
 
+A one-shot preview (`--composition Shot-<id>`) of a few seconds may end
+over the ceiling, and `render.mjs` warns: in a review a 9 s shot on 9:16
+ended at -0.88 dBTP, because loudnorm's dynamic mode raises the start of a
+short clip by about 3 dB (the mix itself peaked at -3.7 dBFS). It is a
+preview: judge the true peak on the full film's `qa/render.json`.
+
+## Music and effects
+
+`qa/render.json` has an `audio` block (also written alone by `audio.mjs`
+to `qa/audio.json`): the music's source, `voiceOverMusicLu` (the music
+under the voice while it speaks; about 16, or 20 and 24 for `musicLevel`
+`normal` and `low`), every effect with its time, the ones left out
+(`dropped`) and the chapter effects that yielded to a key effect
+(`yielded`), and `effectsOverSpeech`, measured on the narration itself:
+it must be 0. A key effect has `fromWordMs`: its start after the end of
+its word (or, negative, from its end to the word), within 300 ms. The
+music has `transientDb`, the sharpest note (its rise above 500 Hz in 20 ms
+over the 300 ms before): at most `transientLimitDb` (8), with
+`transientsOver` 0. Over it, notes stand out in the pauses like sound
+effects: seen in test videos, where bell notes rose 18 dB and were heard
+as loud effects placed at random. The generated styles stay under 6.5 dB;
+a user's music file over the limit is a warning of the lint and the
+render. Nobody listens in these checks: the user hears the music at
+delivery, and "music lower" or "no effects" is a render away.
+
 ## Preview checkpoint (only with `checkpoints: narration+preview`)
 
 Show the user the contact sheets (their paths) and, if they want to hear it,
@@ -128,7 +160,8 @@ last full run, run both again without `--shot` first: the reviewer reads the
 full-film sheets and `qa/freeze.json`. It reads the result against the facts, not against the intent.
 
 First make the contact sheet of the final file (one frame every 3 s; a 90 s
-video fits one 6x5 sheet; for longer videos add `-frames:v 1` sheets with a
+video fits one 6x5 sheet; on 9:16 use `scale=300:-2,tile=8x4` and on 1:1
+`scale=400:-2`; for longer videos add `-frames:v 1` sheets with a
 different `-ss` start):
 
 ```
@@ -175,6 +208,9 @@ Check:
   no URL or absolute path, the video linked as <slug>.mp4.
 - A decision already taken (in a later source, or marked as decided) shown as open is a P0.
 - Loudness in render.json near -14 LUFS (within 1), true peak at most -1.5 dBTP, no frozen pair in freeze.json.
+- Music and effects (render.json "audio", when music or sfx is on): effectsOverSpeech 0, voiceOverMusicLu
+  within 1 of 16 (20 for musicLevel normal, 24 for low), music transientDb at most transientLimitDb (over it a P1:
+  sharp notes heard as random effects); a key effect the storyboard asked for in "dropped" is a P2.
 
 Write <videoDir>/qa/review.md with one line per finding:
   P0 | P1 | P2, shot id and time, what is wrong, the fact or file line it contradicts.
@@ -221,7 +257,7 @@ because the step did not say which.
 - Re-rendering only the changed shots of the final film: one-shot compositions
   exist (`Shot-<id>`), but splicing them into the final file is not
   implemented; a fix means a full render.
-- The one-shot preview render (`--composition Shot-<id>`) was not run during
-  development.
+- The one-shot preview render (`--composition Shot-<id>`) was run on two
+  shots in a review (16:9 and 9:16), not yet at a user's checkpoint.
 - The freeze probe compares two frames 0.8 s apart, a proxy for "change over
   the whole stretch"; a fast flicker between them would pass.

@@ -15,10 +15,12 @@ export type LessonProps = {
 /**
  * The takeaway (catalogue 2.8), on a dark stage. Lines rise in on their
  * anchors (beat `line1`, `line2`... or the line's own `at`); a line without
- * an anchor follows the previous one after 0.15 s. Reminders get ticks.
+ * an anchor follows the previous one after 0.15 s. Reminders get ticks. The
+ * block is centred in the stage; on a 1080 px wide frame the lines are a
+ * little smaller and may wrap.
  */
 export const Lesson: React.FC = () => {
-  const { shot, c } = useShot();
+  const { shot, c, L } = useShot();
   const beat = useBeat();
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -33,19 +35,29 @@ export const Lesson: React.FC = () => {
     ats.push(beat(l.at ?? `line${i + 1}`, prev));
   });
 
-  const blockH = lines.length * 92 + (reminders.length ? 60 + reminders.length * 80 : 0);
-  const top = 500 - blockH / 2;
+  const side = L.narrow ? L.textMargin : 200;
 
   return (
     <StageFrame>
-      <div style={{ position: "absolute", left: 200, right: 200, top }}>
+      <div
+        style={{
+          position: "absolute",
+          left: side,
+          right: side,
+          top: L.stageTop,
+          bottom: L.height - L.stageBottom,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+        }}
+      >
         {lines.map((l, i) => {
           const p = arrive(frame, ats[i], fps, 0.4);
           return (
             <div
               key={i}
               style={{
-                fontSize: TYPE.statement + 4,
+                fontSize: L.narrow ? 60 : TYPE.statement + 4,
                 fontWeight: 600,
                 lineHeight: 1.25,
                 opacity: p,

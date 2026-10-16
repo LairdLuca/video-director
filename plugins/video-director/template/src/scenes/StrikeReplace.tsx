@@ -3,6 +3,7 @@ import { useCurrentFrame, useVideoConfig } from "remotion";
 import { looksLikeCode } from "../components/primitives";
 import { StageFrame } from "../components/Stage";
 import { arrive, ease, follow, lerp, tween } from "../motion";
+import { statementSize, strikeAfterSize, strikeOneLine } from "../lib/layout.mjs";
 import { useBeat, useShot, useShotStart } from "../shot";
 import { mono, sans, TYPE } from "../theme";
 
@@ -22,10 +23,12 @@ export type StrikeReplaceProps = {
 /**
  * Before/after, "not A but B" (catalogue 2.5): one statement line; on
  * `atStrike` a line strikes through `before`, on `atAfter` `after` rises
- * into the same slot (in mono when it is a code token).
+ * into the same slot (in mono when it is a code token). The statement and
+ * the note are one block centred in the stage; on a 1080 px wide frame the
+ * statement may wrap.
  */
 export const StrikeReplace: React.FC = () => {
-  const { shot, c } = useShot();
+  const { shot, c, L } = useShot();
   const beat = useBeat();
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -45,23 +48,36 @@ export const StrikeReplace: React.FC = () => {
   const noteIn = props.note ? follow(frame, noteAt, fps, 0, 0.4) : 0;
   const codeBefore = looksLikeCode(props.before);
   const codeAfter = looksLikeCode(props.after);
+  // A prefix that does not share the slot's line gets a line of its own, with
+  // room for the struck word to lift (lib/layout.mjs strikeOneLine).
+  const oneLine = strikeOneLine(L, props, codeBefore, codeAfter);
 
   return (
     <StageFrame>
       <div
         style={{
           position: "absolute",
-          left: 160,
-          right: 160,
-          top: 360,
+          left: L.textMargin,
+          right: L.textMargin,
+          top: L.stageTop,
+          bottom: L.height - L.stageBottom,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 72,
+        }}
+      >
+      <div
+        style={{
           textAlign: "center",
-          fontSize: TYPE.statement,
+          fontSize: statementSize(L),
           fontWeight: 600,
           lineHeight: 1.2,
           opacity: appear,
         }}
       >
-        {props.prefix ? <span>{props.prefix} </span> : null}
+        {props.prefix ? oneLine ? <span>{props.prefix} </span> : <div style={{ marginBottom: 104 }}>{props.prefix}</div> : null}
         {/* One grid cell holds both words, so the slot is as wide as the longer one. */}
         <span style={{ display: "inline-grid", verticalAlign: "top", textAlign: "left" }}>
           <span
@@ -95,6 +111,7 @@ export const StrikeReplace: React.FC = () => {
               gridArea: "1 / 1",
               justifySelf: "start",
               whiteSpace: "nowrap",
+              fontSize: strikeAfterSize(L, props.after, codeAfter),
               fontFamily: codeAfter ? mono : sans,
               color: c.accent,
               fontWeight: 700,
@@ -109,10 +126,6 @@ export const StrikeReplace: React.FC = () => {
       {props.note ? (
         <div
           style={{
-            position: "absolute",
-            left: 160,
-            right: 160,
-            top: 560,
             textAlign: "center",
             fontSize: TYPE.body,
             color: c.muted,
@@ -123,6 +136,7 @@ export const StrikeReplace: React.FC = () => {
           {props.note}
         </div>
       ) : null}
+      </div>
     </StageFrame>
   );
 };

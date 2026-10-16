@@ -3,6 +3,8 @@
   "width": 1920,
   "height": 1080,
   "captions": true,
+  "paletteLight": "giallo",
+  "paletteDark": "notte",
   "chapters": [
     { "id": "problem", "label": "PROBLEMA" },
     { "id": "diagnosis", "label": "DIAGNOSI" },
@@ -102,6 +104,7 @@
       "theme": "dark",
       "sentences": ["s05"],
       "transitionIn": "push",
+      "sfx": [{ "kind": "error", "at": "error" }],
       "props": {
         "title": "~/acme-shop",
         "size": "full",
@@ -128,12 +131,11 @@
       "sentences": ["s06"],
       "transitionIn": "push",
       "props": {
-        "prefix": "2.4.0:",
         "before": "DB_HOST + DB_PORT",
         "after": "DATABASE_URL",
         "atStrike": "strike",
         "atAfter": "after",
-        "note": "connessione al database",
+        "note": "dalla 2.4.0: connessione al database",
         "atNote": "note"
       },
       "beats": [
@@ -233,6 +235,7 @@
       "theme": "light",
       "sentences": ["s11", "s12"],
       "transitionIn": "push",
+      "sfx": [{ "kind": "success", "at": "slab" }],
       "props": {
         "title": "checkout-6b8d9f7c4-m4vtr",
         "rows": [

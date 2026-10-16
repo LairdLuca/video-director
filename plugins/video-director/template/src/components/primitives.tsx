@@ -1,9 +1,10 @@
 import React from "react";
 import { useCurrentFrame, useVideoConfig } from "remotion";
 import { icons } from "../icons.generated";
+import { HERO, slabFontSize } from "../lib/layout.mjs";
 import { arrive, ease, follow, lerp, tween } from "../motion";
 import { useShot } from "../shot";
-import { mono, MONO_ADVANCE, sans, TYPE } from "../theme";
+import { alpha, mono, sans } from "../theme";
 
 /** Lucide file name: "server", "file-code"; PascalCase ("ShoppingCart") is accepted too. */
 export const iconFile = (name: string) =>
@@ -74,7 +75,9 @@ export const Brackets: React.FC<{
   color: string;
   arm?: number;
   pad?: number;
-}> = ({ box, at, until, color, arm = 26, pad = 10 }) => {
+  /** Vertical gap to the box, when it differs from `pad` (a row between rows). */
+  padY?: number;
+}> = ({ box, at, until, color, arm = 26, pad = 10, padY = pad }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const p = tween(frame, at, at + Math.round(0.3 * fps), ease.out);
@@ -82,9 +85,9 @@ export const Brackets: React.FC<{
   if (p <= 0 || out >= 1) return null;
   const spread = lerp(28, 0, p);
   const x0 = box.x - pad - spread;
-  const y0 = box.y - pad - spread;
+  const y0 = box.y - padY - spread;
   const x1 = box.x + box.w + pad + spread;
-  const y1 = box.y + box.h + pad + spread;
+  const y1 = box.y + box.h + padY + spread;
   const s = { position: "absolute" as const, width: arm, height: arm, borderColor: color, borderStyle: "solid" };
   const w = 5;
   return (
@@ -104,29 +107,21 @@ export type SlabProps = {
   tone?: "accent" | "negative" | "positive";
 };
 
-/** Horizontal padding of the slab card, both sides together. */
-const SLAB_PAD_X = 128;
-
-/**
- * Font size that keeps a mono value inside `maxWidth` (card padding
- * included): the hero size up to 4 characters in a 620 px half-stage slot,
- * smaller beyond. A five-digit task number at 192 px ran out of that slot in
- * a test video.
- */
-export const slabFontSize = (value: string, maxWidth: number) =>
-  Math.min(TYPE.hero, Math.floor((maxWidth - SLAB_PAD_X) / (Math.max(1, value.length) * MONO_ADVANCE)));
-
 /**
  * Status slab (style rules 8 and 14): a big number on a coloured card. It drops in
  * and arrives on `at`; the number pops with a small overshoot. The value
- * shrinks to fit `maxWidth` (slabFontSize) and the caption wraps inside it.
+ * shrinks to fit `maxWidth` (slabFontSize in lib/layout.mjs: the hero size up
+ * to 4 characters in a 620 px half-stage slot, smaller beyond; a five-digit
+ * task number at 192 px ran out of that slot in a test video) and the caption
+ * wraps inside it. `maxFont` caps the value where the stage is short.
  */
-export const Slab: React.FC<SlabProps & { at: number; maxWidth?: number; style?: React.CSSProperties }> = ({
+export const Slab: React.FC<SlabProps & { at: number; maxWidth?: number; maxFont?: number; style?: React.CSSProperties }> = ({
   value,
   caption,
   tone = "accent",
   at,
   maxWidth = 1600,
+  maxFont = HERO,
   style,
 }) => {
   const frame = useCurrentFrame();
@@ -146,10 +141,10 @@ export const Slab: React.FC<SlabProps & { at: number; maxWidth?: number; style?:
         maxWidth,
         boxSizing: "border-box",
         textAlign: "center",
-        color: "#FFFFFF",
+        color: c.onAccent,
         opacity: drop,
         transform: `translateY(${lerp(-48, 0, drop)}px)`,
-        boxShadow: "0 24px 60px rgba(15,23,42,0.18)",
+        boxShadow: `0 24px 60px ${alpha(c.shadow, 0.18)}`,
         ...style,
       }}
     >
@@ -157,7 +152,7 @@ export const Slab: React.FC<SlabProps & { at: number; maxWidth?: number; style?:
         style={{
           fontFamily: mono,
           fontWeight: 700,
-          fontSize: slabFontSize(value, maxWidth),
+          fontSize: slabFontSize(value, maxWidth, maxFont),
           lineHeight: 1,
           whiteSpace: "nowrap",
           transform: `scale(${lerp(0.6, 1, pop)})`,
@@ -196,6 +191,5 @@ export const WithKeyword: React.FC<{ text: string; keyword?: string; color: stri
   );
 };
 
-/** A token that looks like code (identifier, flag, path, version) is set in mono. */
-export const looksLikeCode = (s: string) =>
-  /[_./:=-]/.test(s) || /^[A-Z0-9_]{3,}$/.test(s) || /^[a-z]+[A-Z]/.test(s);
+/** A token that looks like code (identifier, flag, path, version) is set in mono (lib/layout.mjs). */
+export { looksLikeCode } from "../lib/layout.mjs";

@@ -1,15 +1,18 @@
 import React from "react";
 import { useCurrentFrame, useVideoConfig } from "remotion";
+import { edgeLabelBox } from "../lib/layout.mjs";
 import { arrive, ease, lerp, tween } from "../motion";
 import { useShot } from "../shot";
-import { mono, TYPE } from "../theme";
+import { alpha, mono, TYPE } from "../theme";
 import { Icon } from "./primitives";
 
 export const NODE_SIZE = 200;
 
 /**
- * A diagram node: line-art icon in a card, label under it. It appears on
- * `at`; it lights (accent border) on `litAt`, e.g. when an edge arrives.
+ * A diagram node: line-art icon in a card, label under it (or on its right).
+ * It appears on `at`; it lights (accent border) on `litAt`, e.g. when an edge
+ * arrives. `labelWidth`: the label's box, by default size + 320 under the
+ * node and 560 on its right; narrower on a 1080 px wide frame.
  */
 export const DiagramNode: React.FC<{
   x: number;
@@ -22,8 +25,9 @@ export const DiagramNode: React.FC<{
   dashed?: boolean;
   size?: number;
   labelSide?: "below" | "right";
+  labelWidth?: number;
   children?: React.ReactNode;
-}> = ({ x, y, icon, label, sub, at, litAt, dashed, size = NODE_SIZE, labelSide = "below", children }) => {
+}> = ({ x, y, icon, label, sub, at, litAt, dashed, size = NODE_SIZE, labelSide = "below", labelWidth, children }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const { c } = useShot();
@@ -48,7 +52,7 @@ export const DiagramNode: React.FC<{
           borderRadius: 32,
           backgroundColor: c.card,
           border: `3px ${dashed ? "dashed" : "solid"} ${lit > 0.5 ? c.accent : c.hairline}`,
-          boxShadow: lit > 0.5 ? `0 0 0 ${lerp(0, 8, lit)}px rgba(37,99,235,0.12)` : "0 10px 30px rgba(15,23,42,0.06)",
+          boxShadow: lit > 0.5 ? `0 0 0 ${lerp(0, 8, lit)}px ${alpha(c.accent, 0.12)}` : `0 10px 30px ${alpha(c.shadow, 0.06)}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -62,8 +66,8 @@ export const DiagramNode: React.FC<{
         style={{
           position: "absolute",
           ...(labelSide === "right"
-            ? { left: size + 32, top: 0, height: size, width: 560, display: "flex", flexDirection: "column" as const, justifyContent: "center", textAlign: "left" as const }
-            : { top: size + 22, left: -160, width: size + 320, textAlign: "center" as const }),
+            ? { left: size + 32, top: 0, height: size, width: labelWidth ?? 560, display: "flex", flexDirection: "column" as const, justifyContent: "center", textAlign: "left" as const }
+            : { top: size + 22, left: (size - (labelWidth ?? size + 320)) / 2, width: labelWidth ?? size + 320, textAlign: "center" as const }),
           fontSize: TYPE.label,
           fontWeight: 600,
           lineHeight: 1.15,
@@ -81,7 +85,8 @@ export const DiagramNode: React.FC<{
 /**
  * An edge drawn as a stroke from (x1,y1) to (x2,y2) over `durS`, centred on
  * `at`. Returns nothing before it starts. A broken edge is dashed, in the
- * negative colour.
+ * negative colour. Its label sits above a horizontal edge and on the right
+ * of a vertical one (lib/layout.mjs, edgeLabelBox).
  */
 export const Edge: React.FC<{
   x1: number;
@@ -107,6 +112,7 @@ export const Edge: React.FC<{
   const hy = y1 + (y2 - y1) * p;
   const head = 22;
   const labelOpacity = tween(frame, at + half, at + half + Math.round(0.3 * fps));
+  const box = edgeLabelBox({ x: x1, y: y1 }, { x: x2, y: y2 }, label ?? "");
   return (
     <>
       <svg style={{ position: "absolute", left: 0, top: 0, overflow: "visible" }} width={1} height={1}>
@@ -137,10 +143,9 @@ export const Edge: React.FC<{
         <div
           style={{
             position: "absolute",
-            left: (x1 + x2) / 2 - 300,
-            top: (y1 + y2) / 2 - 62,
-            width: 600,
-            textAlign: "center",
+            ...(box.vertical
+              ? { left: box.x0, top: box.y0, width: 600, textAlign: "left" as const }
+              : { left: (x1 + x2) / 2 - 300, top: (y1 + y2) / 2 - 62, width: 600, textAlign: "center" as const }),
             fontSize: 30,
             fontWeight: 600,
             color: c.muted,

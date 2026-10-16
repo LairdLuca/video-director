@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from vdvoice.markup import EN, IPA, MAIN, normalize_spoken, parse, shown_text  # noqa: E402
+from vdvoice.markup import EN, IPA, MAIN, code_words, load_code_terms, load_glossary, normalize_spoken, parse, shown_text  # noqa: E402
 from vdvoice.script import ScriptError, english_parts, load_script, pause_after, suggestions  # noqa: E402
 from vdvoice.timing import Word, align, heard_near, heard_terms  # noqa: E402
 
@@ -131,9 +131,15 @@ def test_long_code_term_said_in_full_is_heard():
     assert heard_terms([voice.forms(part.segment)], "Apri values.yaml ora") == [True]
     # the pace counts what is said: a version shows one word and says five
     assert voice.spoken_words("Versione 2.4.0 pronta.") == 7
-    # ...but a spelled acronym counts as the one word it shows
-    assert voice.spoken_words("Accesso con {SSO|esse esse o} attivo.") == 4
+    # ...and an acronym weighs half a word per letter, at least one, spelled or not
+    assert voice.spoken_words("Accesso con {SSO|esse esse o} attivo.") == 4.5
+    assert voice.spoken_words("Accesso con SSO attivo.") == 4.5
+    assert voice.spoken_words("Chiama {HTTP|acca ti ti pi} ora.") == 4
+    assert voice.spoken_words("Premi {F5|effe cinque} ora.") == 3
     assert voice.spoken_words("Errore {503|cinque zero tre} ora.") == 5
+    # an acronym said as a word, and capitals inside an identifier, are words
+    assert voice.spoken_words("Libera la {RAM|ram} ora.") == 4
+    assert voice.spoken_words("Non usa DB_HOST ora.") == voice.spoken_words("Non usa db_host ora.")
 
 
 def test_marked_parts_are_checked():
@@ -226,6 +232,71 @@ def test_load_script_reports_every_problem():
     assert load_script(write_script(SCRIPT))["language"] == "it"
 
 
+def coded(line, glossary=GLOSSARY, code_terms=("kubectl", "kubectl logs", "rollout restart")):
+    words = shown_text(parse(line, glossary)).split()
+    flags = code_words(line, glossary, list(code_terms))
+    assert len(words) == len(flags), (words, flags)
+    return [w for w, f in zip(words, flags) if f]
+
+
+def test_code_words():
+    # Identifier shapes, glossary code terms, backticks and paths are code;
+    # glossary words, numbers and versions are not
+    assert coded("Il pod di checkout è in CrashLoopBackOff: manca DATABASE_URL.") == ["CrashLoopBackOff:", "DATABASE_URL."]
+    assert coded("Con kubectl logs --previous vediamo il log.") == ["kubectl", "logs", "--previous"]
+    assert coded("Riavviamo con {rollout restart|ipa:x}, poi `helm upgrade`.") == ["rollout", "restart,", "helm", "upgrade."]
+    assert coded("La 2.4.0 di acme-shop risponde {503|cinque zero tre}.") == ["acme-shop"]
+    assert coded("Apri /etc/hosts, ./run.sh e src/app.ts.") == ["/etc/hosts,", "./run.sh", "src/app.ts."]
+    # Not paths: e/o, A/B; a language marker keeps a word in the text font
+    assert coded("Test A/B e/o {en:back-off} con {it:main}.") == []
+    # A glossary word with an identifier shape stays a word unless it is in backticks there
+    assert coded("in back-off", GLOSSARY + ["back-off"]) == []
+    assert coded("in back-off") == ["back-off"]
+
+
+def test_command_with_a_spoken_form_is_code():
+    # A shown side of several words that starts with a code term is a command
+    assert coded("Poi {kubectl rollout restart|ipa:x}.") == ["kubectl", "rollout", "restart."]
+    assert coded("Il {pod checkout|pod chèckaut} riparte.") == []
+
+
+def test_markup_inside_backticks_is_an_error():
+    def problems(text):
+        path = TMP / "bad.json"
+        data = json.loads(json.dumps(SCRIPT))
+        data["sentences"][0]["text"] = text
+        path.write_text(json.dumps(data), encoding="utf-8")
+        try:
+            load_script(path)
+        except ScriptError as e:
+            return str(e)
+        return ""
+
+    assert "markup inside backticks" in problems("Poi `{kubectl rollout restart|ipa:kjˈuːb}`.")
+    assert "markup inside backticks" in problems("Poi `{en:rollout restart}`.")
+    assert "markup inside backticks" in problems("Poi `kubectl ipa:x`.")
+    # Code with a pipe, a variable or an escaped brace is not markup
+    assert problems("Poi `kubectl get pods | grep checkout`.") == ""
+    assert problems("Poi `echo ${HOME}`.") == ""
+    assert problems(r"Poi `a \{b|c\}`.") == ""
+
+
+def test_estimated_pace():
+    from vdvoice.cli import estimated_pace
+
+    # Measured on the test videos with im_nicola: 2.75-2.85 at 1.15, 2.72-2.73 at 1.10, 2.66 at 1.05
+    assert round(estimated_pace("im_nicola", 1.15), 2) == 2.80
+    assert 2.70 <= estimated_pace("im_nicola", 1.10) <= 2.76
+    assert 2.62 <= estimated_pace("im_nicola", 1.05) <= 2.70
+
+
+def test_glossary_code_terms():
+    path = TMP / "glossary.txt"
+    path.write_text("# comment\npod\n`kubectl get`\n\n`secretKeyRef`\n", encoding="utf-8")
+    assert load_glossary(path) == ["pod", "kubectl get", "secretKeyRef"]
+    assert load_code_terms(path) == ["kubectl get", "secretKeyRef"]
+
+
 def test_pauses():
     s = SCRIPT["sentences"]
     assert [pause_after(s, i) for i in range(len(s))] == [400, 800, 0]
@@ -287,6 +358,10 @@ def test_script_writes_contract_b_and_reuses_unchanged_sentences():
     assert [s["pauseAfterMs"] for s in vo["sentences"]] == [400, 800, 0]
     assert isinstance(s1["durationMs"], int) and s1["timing"] == "whisper"
     assert [w["text"] for w in s1["words"]] == shown[0].split()
+    # Code words for the captions' code font; {en:...} keeps a part in the text font
+    assert [w.get("code", False) for w in s1["words"]] == [False] * 6 + [True]
+    assert [w["text"] for w in s2["words"] if w.get("code")] == ["DATABASE_URL."]
+    assert not any(w.get("code") for w in s3["words"])
     assert all(isinstance(w["startMs"], int) and w["endMs"] >= w["startMs"] for w in s1["words"])
     assert {t["term"]: t["ok"] for t in s1["probe"]["terms"]} == {"pod": True, "checkout": True, "CrashLoopBackOff": True}
     assert s3["notHeard"] == ["rollout restart"]

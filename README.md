@@ -1,42 +1,56 @@
 # video-director
 
-**Version 0.1.0**, see the [changelog](CHANGELOG.md).
+**Version 0.2.0**, see the [changelog](CHANGELOG.md).
 
 A Claude Code plugin that teaches Claude to make a **short narrated explainer
 video** from facts: a DevOps how-to ("how we fixed X"), a report of work done,
 or the explanation of a task to do. You ask for a video; Claude gathers the
 facts, writes the narration, records it with a local voice, lays out the
-shots, checks them on stills, renders a 1080p MP4 and, if you want, writes an
-HTML page with the commands next to it.
+shots, checks them on stills, renders an MP4 (16:9, 9:16 or 1:1, 1080 px on
+the short side) with quiet music and sound effects made on your machine
+and, if you want, writes an HTML page with the commands next to it.
 
 ```
 you:     make a video explaining how we fixed the checkout crash after the 2.4.0 deploy
 claude:  facts.md -> narration (your OK) -> voice -> storyboard -> stills -> render
-         videos/checkout-crashloop/out/checkout-crashloop.mp4    (86 s, 1080p)
+         videos/checkout-crashloop/out/checkout-crashloop.mp4    (86 s, 16:9, 1080p)
          videos/checkout-crashloop/out/checkout-crashloop.html   (summary, commands, transcript)
          videos/checkout-crashloop/OUTCOME.md                    (times, checks, what was not checked)
 ```
 
-Everything runs on your machine: no API key, no cloud voice, nothing uploaded,
-no administrator rights.
+Everything runs on your machine: no API key, no cloud voice, no stock
+music, nothing uploaded, no administrator rights.
 
 ## What a video looks like
 
-The style comes from a side-by-side comparison of six video tools on the same
-90-second brief; the rules are in
+The style comes from earlier test videos of one brief, a 90-second
+explainer; the rules are in
 [`skills/make/references/style.md`](plugins/video-director/skills/make/references/style.md).
 In short:
 
 - **one subject per frame, big**: a terminal across the frame, a 2-4 node
-  diagram, a status card, a number; nothing under 28 px;
+  diagram, a status card, a number; nothing under 28 px (terminals and
+  code 24 px on the narrow formats);
 - **something changes on the spoken word that names it**, about every 2
   seconds: a command types, a line gets brackets, a tick strokes in;
-- a slow camera on every shot, light stages for concepts and dark ones for
-  close-ups and the lesson;
-- a **chapter bar** at the top that fills as each chapter plays;
-- short **captions** with the exact terms (`kubectl`, `DATABASE_URL`);
+- a slow camera on every shot, on **squared paper**: a light paper for
+  concepts (a yellow notepad by default, seven others to choose from) and a
+  faded black one for close-ups and the lesson, with a crossfade between
+  the two;
+- **three formats**: 16:9 for explanations and long commands, 9:16 for a
+  short phone video, 1:1 for a clip pasted into a chat; Claude picks it from
+  the subject unless you ask for one;
+- a **chapter bar** at the top where every chapter is always visible and
+  the current one fills as it plays; with many chapters, two rows (the
+  parts below, the chapters of the current part above);
+- short **captions** with the exact terms, commands and names in a code
+  font (`kubectl`, `DATABASE_URL`);
 - a narration with **English terms pronounced in English** inside another
   language, by the same local voice;
+- **quiet music** under the voice, in a style Claude picks from the
+  subject, that changes with each chapter and ends with the film, and a few
+  **sound effects** (a chapter change, the error, the passing check), only
+  in the pauses of the narration, never over a word;
 - the symptom of the first shot comes back resolved at the end.
 
 ## Install
@@ -58,22 +72,39 @@ Then run the setup once:
 ```
 
 It checks your machine, builds the voice runtime and the models at user
-level, and asks a few questions, one at a time, each with a default:
+level, and asks a few questions, one at a time, each with a default. Every
+choice is a key of the plugin's config:
 
-| Choice | Default |
-|---|---|
-| Narration and on-screen language | `it` (also `en`, `en-gb`, `es`, `fr`, `pt`; only Italian is tested) |
-| Voice, with a 5-second sample of each candidate | the language's default (`im_nicola` for Italian) |
-| Captions | on |
-| HTML page next to each video | on |
-| Open the page (or the MP4) by itself when the video is ready | on |
-| Checkpoints: where video-making stops for your OK | `narration` (also `none`, `narration+preview`) |
-| Folder for the video projects | `videos` in your project |
+| Key | Choice | Default |
+|---|---|---|
+| `language` | Narration and on-screen language | `it` (also `en`, `en-gb`, `es`, `fr`, `pt`; only Italian is tested) |
+| `voice` | Voice, with a 5-second sample of each candidate | the language's default (`im_nicola` for Italian) |
+| `captions` | Captions | on |
+| `page` | HTML page next to each video | on |
+| `openOnDelivery` | Open the page (or the MP4) by itself when the video is ready | on |
+| `checkpoints` | Where video-making stops for your OK | `narration` (also `none`, `narration+preview`) |
+| `videosDir` | Folder for the video projects | `videos` in your project |
+| `paletteLight` | Paper of the light stage: `giallo` (yellow notepad), `quaderno`, `milli`, `arancio`, `tecnico`, `rosso`, `verde`, `grigio` | `giallo` |
+| `paletteDark` | Paper of the dark stage: `notte` (faded black), `ardesia` (slate) | `notte` |
+| `font` | Text font: the bundled Inter, a sans-serif found on your machine, or a font file of yours | `inter` |
+| `music` | Background music under the narration | on |
+| `sfx` | Short sound effects at chapter changes and key moments | on |
+| `audioDir` | A folder of your own music and effects, used instead of the generated ones | none |
+| `format` | Not asked: 16:9, 9:16 or 1:1, picked for each video from the subject | `auto` |
+| `musicStyle` | Not asked: `warm`, `pulse` or `minimal`, picked for each video from the subject | `auto` |
+| `musicLevel` | Not asked: the music under the voice, `high` (16 LU under it), `normal` (20) or `low` (24) | `high` |
+| `engine` | Not asked: the local Kokoro voice, the only engine | `kokoro` |
+| `speed` | Not asked: the voice's speed, tuned to 2.3-2.7 words per second | the voice's own |
+| `resolution` | Not asked: 1080 px on the short side, in every format | `1080p` |
+| `flagDashes` | Not asked: say `--atomic` as "dash dash atomic" instead of "atomic" | off |
+| `modelsDir`, `runtimeDir` | The voice models (setup asks whether you already have them) and the Python venv of the voice step | in the plugin's data folder |
 
+Every key, its values and the phrases that change it for one video are in
+[`config.md`](plugins/video-director/skills/setup/references/config.md).
 The answers are saved in the plugin's data folder and survive updates. Run
 setup again to change them. **Any choice can be changed for a single video**
 just by asking: "without captions", "female voice", "no page", "don't open it",
-"in English".
+"in English", "vertical", "no music", "music lower", "more rhythm".
 
 ## Requirements
 
@@ -110,21 +141,24 @@ Remotion checks that download, not a sha256 of this plugin.
 
 1. **Facts** into `facts.md`, each with its source: the conversation, git
    (log, diff, commits) or markdown files. Nothing is invented; a gap is
-   written down, not filled.
+   written down, not filled. Claude picks the format and the music style
+   from the subject, unless you asked for them.
 2. **Narration** (`script.json`): 60-90 seconds, one idea per sentence, in
    chapters. **Checkpoint**: you see the script and the chapters before the
    voice is recorded (unless checkpoints are `none`).
 3. **Voice**: one WAV per sentence with Kokoro; a local Whisper model listens
    to every sentence, gives the word timings and lists English terms it did
-   not recognise, and Claude fixes them.
+   not recognise, and Claude fixes them. Commands, file names and
+   identifiers are marked as code for the captions.
 4. **Storyboard** (`storyboard.json`): shots from a catalogue of nine scene
    types, every visual change anchored to a spoken word; a lint checks
-   anchors, lengths, layout limits and that every command on screen is in the
-   facts.
+   anchors, lengths, layout limits of the chosen format, where the sound
+   effects fall, and that every command on screen is in the facts.
 5. **Stills**: contact sheets that Claude reads as images, and a freeze probe,
    before any full render. Optional **checkpoint**: you see the stills.
 6. **Render**: one headless browser on 127.0.0.1, memory check first, every
-   child process cleaned up, loudness normalized to -14 LUFS.
+   child process cleaned up; then the music and effects are generated and
+   mixed under the narration, and the whole mix is normalized to -14 LUFS.
 7. **Page**: one self-contained HTML file next to the MP4.
 8. **Final review** by a fresh sub-agent against the facts; one round of
    fixes.
@@ -134,8 +168,8 @@ Remotion checks that download, not a sha256 of this plugin.
 
 On a 16 GB laptop, CPU only, the machine steps of a 90-second video took
 about 15-25 minutes (project install 1 min, voice 2 min, stills 4 min, freeze
-probe 4 min, render 5-9 min depending on free memory), plus the time Claude
-spends writing. Timed test runs, writing and one review round included, took
+probe 4 min, render 5-9 min depending on free memory, music and effects a
+few seconds), plus the time Claude spends writing. Timed test runs, writing and one review round included, took
 42-54 minutes per video.
 
 A complete example (facts, narration with its pronunciation fixes and
@@ -155,7 +189,9 @@ plugin does not pass a license key, so Remotion sends no usage event.
 
 The other third-party pieces (fonts, icons, voice and speech models, Python
 packages) and their licenses are listed in [THIRD_PARTY.md](THIRD_PARTY.md).
-Two points there are not settled by a lawyer: the voice module imports the
+The music and effects are made by the plugin's own code; a folder of
+your own sounds, and a font from your machine, are yours to check for
+rights. Two points there are not settled by a lawyer: the voice module imports the
 GPL-3.0 `phonemizer` and loads espeak-ng at run time (setup installs them,
 this repository does not ship them), and `@remotion/transitions` declares
 `UNLICENSED` in its `package.json` and is taken to fall under the Remotion
@@ -168,8 +204,13 @@ License.
 - **Pronunciation is judged by Whisper, not by a human ear.** In a prototype,
   93% of English terms in Italian sentences were recognised on sentences held
   out from tuning; `on-call` and `rebase` still failed. Acronyms need markup.
-- **16:9 1080p only**; no vertical video, no music, no sound effects, no screen
-  recording, no publishing.
+- **1080 px on the short side only** (16:9, 9:16, 1:1); no screen recording,
+  no publishing. On 9:16 and 1:1 a terminal or code line fits about 61
+  characters: videos with longer lines stay 16:9.
+- **Music and effects were measured, then heard only on 20-second clips**,
+  not yet in a whole video. Three generated styles, no samples at setup.
+- **9:16 and 1:1 were checked on stills and short clips** of the example,
+  not yet in a full video.
 - The **Screenshot** and **Custom** scenes have only been tried on test data.
 - A fix after the final review means a **full re-render** (about 5 minutes).
 - Each video project carries its own `node_modules` and headless browser
@@ -187,7 +228,7 @@ plugins/video-director/
   skills/setup/                      /video-director:setup
   skills/make/                       /video-director:make, and its references
   template/                          the Remotion project copied for each video
-  scripts/                           Node scripts: new video, config, voice, lint, stills, freeze, render, page
+  scripts/                           Node scripts: new video, config, fonts, voice, lint, stills, freeze, audio, render, page, open
   voice/                             the Python voice module (Kokoro + Whisper)
   examples/acme-shop-crashloop/      a worked example with fictional facts
 ```

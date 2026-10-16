@@ -2,20 +2,22 @@
 # One term per line, matched as whole words, case-insensitive, longest first.
 # Leave out words that are also common main-language words (data, file, come,
 # fine, case...): those need explicit markup, {en:...}.
+# A term in backticks is code (a command, an identifier): the captions show it
+# in the code font. The others are English words, shown in the text font.
 
 # Kubernetes and containers
-kubectl
-kubectl apply
-kubectl describe
-kubectl get
-kubectl logs
+`kubectl`
+`kubectl apply`
+`kubectl describe`
+`kubectl get`
+`kubectl logs`
 kubelet
 pod
 pods
 deployment
 deployments
 rollout
-rollout restart
+`rollout restart`
 rollback
 restart
 namespace
@@ -26,7 +28,7 @@ node
 nodes
 secret
 secrets
-secretKeyRef
+`secretKeyRef`
 configmap
 manifest
 service
@@ -36,7 +38,8 @@ readiness probe
 liveness probe
 load balancer
 pool
-CrashLoopBackOff
+`CrashLoopBackOff`
+back-off
 Running
 
 # Delivery
@@ -76,6 +79,7 @@ production
 monitoring
 alert
 on-call
-# Grafana: read the same in Italian; the English ɑː came out as "Grafona"
+# A brand that reads the same in Italian (such as "YouTube") stays out: the
+# English vowels came out worse than the Italian reading in the prototype
 Prometheus
 GitHub

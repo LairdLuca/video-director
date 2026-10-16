@@ -19,8 +19,8 @@ the rest stays in the narration language (espeak-ng `it`), and the whole
 sentence goes to one voice in one pass, so the intonation runs across the
 joins.
 
-In a comparison on 16 Italian sentences with 64 English terms, half of them
-held out from tuning, Whisper recognised 93% of the terms on the held-out half
+In a prototype test on 16 Italian sentences with 64 English terms, half of
+them held out from tuning, Whisper recognised 93% of the terms on the held-out half
 with this approach, against 76-79% with respellings and 45-55% with plain
 text. Nobody had listened yet when those numbers were taken.
 
@@ -29,13 +29,13 @@ text. Nobody had listened yet when those numbers were taken.
 | Path | What |
 |---|---|
 | `run.py` | entry point; adds its own folder to `sys.path` (needed under `-I`) |
-| `vdvoice/markup.py` | narration markup: shown text, spoken text, language of each part |
+| `vdvoice/markup.py` | narration markup: shown text, spoken text, language of each part; code words for the captions |
 | `vdvoice/phonemes.py` | espeak-ng phonemes per part, joined for one voice; lexicon; final-consonant rule |
 | `vdvoice/synth.py` | Kokoro synthesis from phonemes, peak normalization, WAV output |
 | `vdvoice/timing.py` | Whisper transcription, alignment of shown words, term check |
 | `vdvoice/script.py` | contract A in (`script.json`), pauses, cache keys, fix suggestions |
 | `vdvoice/cli.py` | the commands below |
-| `data/glossary-en.txt` | English terms marked automatically |
+| `data/glossary-en.txt` | English terms marked automatically; a term in backticks is also code in the captions |
 | `data/lexicon-en.json` | IPA for the few English terms espeak gets wrong |
 | `data/voices.json` | languages (espeak and Whisper codes, default voice, sample sentence) and per-voice default speed |
 | `tests/test_vdvoice.py` | plain-assert tests; no model files needed |
@@ -119,9 +119,10 @@ Each entry says why it exists.
 python -I -B -X utf8 tests/test_vdvoice.py
 ```
 
-18 tests: markup, normalization, the dash option, the term check, alignment,
-lexicon keys and readings, fix suggestions, `script.json` checks, pauses, and
-a whole `script` run with a fake synthesizer and a fake Whisper that checks
+22 tests: markup, normalization, the dash option, the term check, alignment,
+lexicon keys and readings, fix suggestions, `script.json` checks, the
+acronym weight in the pace, code words for the captions, pauses, and a
+whole `script` run with a fake synthesizer and a fake Whisper that checks
 the shape of `voiceover.json` and the reuse of unchanged sentences.
 
 ## Common mistakes
@@ -136,7 +137,8 @@ the shape of `voiceover.json` and the reuse of unchanged sentences.
 - Judging a pronunciation only from Whisper: its language model fills in known
   terms, so a recognised term can still have an accent. Listen.
 - Putting a brand that reads the same in both languages in the glossary
-  (Grafana): the English vowels came out worse than the narration reading.
+  (such as "YouTube"): the English vowels came out worse than
+  the narration reading.
 - Expecting a one-phoneme lexicon change to affect one word only: Kokoro picks
   its style vector by the phoneme count, so the whole line can shift.
 

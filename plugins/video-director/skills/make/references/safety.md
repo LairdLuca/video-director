@@ -4,8 +4,8 @@ These rules hold for every step of setup and of a video, for Claude and for
 every sub-agent Claude starts. A sub-agent does not inherit them: **paste the
 block at the end of this file into every sub-agent brief**, as it is.
 
-Where they come from: a comparison of six video tools run side by side on one
-laptop. Each rule below names the incident or the measurement behind it.
+Where they come from: earlier test runs on one laptop, and the incidents
+seen there. Each rule below names the incident or the measurement behind it.
 
 ## The rules
 
@@ -14,15 +14,15 @@ laptop. Each rule below names the incident or the measurement behind it.
    Remotion packages inside each video project. Never `npm -g`, `pip install`
    into a system Python, `sudo`, or an installer that asks for elevation. If a
    step needs admin rights, stop and tell the user what needs them and why;
-   do not look for a workaround. Source: the tools were tested on a managed
+   do not look for a workaround. Source: the test runs were made on a managed
    work laptop where an MSI installer failed with an elevation error.
-2. **No symlinks, no Developer Mode.** Copy files instead. Source: one of the
-   compared tools needed directory symlinks, which on Windows require
+2. **No symlinks, no Developer Mode.** Copy files instead. Source: seen in test
+   runs: a setup that needed directory symlinks, which on Windows require
    Developer Mode.
 3. **No API keys, no cloud services, nothing uploaded.** Narration is local
    (Kokoro), word timing is local (Whisper). No file of the user leaves the
-   machine. Source: one of the compared tools uploaded local files to a public
-   file host before checking for a key.
+   machine. Source: seen in test runs: local files uploaded to a public file host
+   before any check for a key.
 4. **Network only for pinned downloads**: npm packages from the template's
    lockfile, Python wheels from the pinned `requirements.txt`, the model
    files with their pinned sha256, and, on the first still of each video,
@@ -31,8 +31,8 @@ laptop. Each rule below names the incident or the measurement behind it.
    for Testing storage (or Remotion's `remotion.media` on macOS and recent
    Linux), and Remotion, not this plugin, checks it. Tell the user before
    the first still of a video. Nothing unpinned, no `npx --yes`, no
-   `curl | sh`. Source: one of the compared tools ran an unpinned CLI, published
-   several times a day, as a mandatory first step; it was excluded.
+   `curl | sh`. Source: seen in test runs: a command-line tool published several times a
+   day, asked to run unpinned as a mandatory first step.
 5. **Servers on 127.0.0.1 only, on a free port, and no browser opened while
    working.** The scripts preload a shim that forces every `listen()` onto
    127.0.0.1 and start from port 3123. Never start Remotion Studio without that
@@ -40,11 +40,11 @@ laptop. Each rule below names the incident or the measurement behind it.
    work; never call the user's browser binary. The one exception is the
    delivery: `open.mjs` opens the finished local page or MP4 with the default
    program, once, when `openOnDelivery` is true (a user's request). Previews are stills (`remotion still`), not a Studio session.
-   Source: in the comparison, Remotion Studio listened on `0.0.0.0:3000` by
+   Source: seen in test runs: Remotion Studio listened on `0.0.0.0:3000` by
    default and opened the browser on its own.
 6. **Remotion's own headless browser only.** The scripts use
    `--chrome-mode=headless-shell` and never pass `--browser-executable`.
-   Source: in the comparison, one tool probed the user's own browser by
+   Source: seen in test runs: a script probed the user's own browser by
    running its binary, which opened an empty window in the user's session.
 7. **Clean up children.** Every script kills its whole process tree when it
    ends, fails or is interrupted, and sweeps headless browsers left running
@@ -61,14 +61,14 @@ laptop. Each rule below names the incident or the measurement behind it.
    user's call (see the README). Source: Remotion's renderer code, read during
    development: any key, a free one included, turns the usage event on.
 10. **Local fonts and icons.** Fonts come from `@fontsource` files copied into
-    the project, icons from the bundled Lucide set. No Google Fonts, no web
-    fonts, and no system fonts in the video (the HTML page uses the system
-    fonts on purpose, so it stays one file: see [page.md](page.md)). Source: a tool in the comparison downloaded
-    Google Fonts at render time.
+    the project, icons from the bundled Lucide set. No font downloaded from the
+    web, and no system fonts in the video (the HTML page uses the system
+    fonts on purpose, so it stays one file: see [page.md](page.md)). Source: seen in test runs: fonts
+    downloaded from the web at render time.
 11. **Windows first.** Scripts are Node `.mjs`, not bash; Python runs with
     `-I -B -X utf8`; paths are written with forward slashes. Everything also
-    runs on macOS and Linux. Source: in the comparison, shell scripts written
-    for zsh had to be ported, a `/c/...` path was read as `C:\c\...`, and
+    runs on macOS and Linux. Source: seen in test runs: shell scripts
+    written for a Unix shell had to be ported, a `/c/...` path was read as `C:\c\...`, and
     the default Windows code page crashed on accents and phonetic symbols.
 12. **Read-only outside the video folder.** A video writes only inside its own
     project folder (and the plugin data folder for setup). Fact sources (the
@@ -80,8 +80,8 @@ laptop. Each rule below names the incident or the measurement behind it.
 14. **Third-party code is untrusted until read.** Do not add npm or PyPI
     packages to a video project. If a custom scene seems to need one, stop and
     ask. Source: the plugin was built under a "read before you run" rule for
-    outside code; in the comparison, that review excluded one tool before it
-    ran.
+    outside code; in the test runs, that review stopped an unsafe step before
+    it ran.
 
 ## Block for sub-agent briefs
 

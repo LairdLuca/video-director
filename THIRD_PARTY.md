@@ -1,31 +1,14 @@
 # Third-party notices
 
 video-director is MIT (see [LICENSE](LICENSE)). This file lists what it
-reuses, what it installs, and under which license. The repository itself
-ships no third-party code, font, icon or model file: everything below is
-either an idea credited here, or a package and a model that setup and each
-video install on the user's machine from pinned sources.
+installs and uses, and under which license. The repository itself ships no
+third-party code, font, icon, sound or model file: everything below is a
+package or a model that setup and each video install on the user's machine
+from pinned sources, or a file the user chooses.
 
 Licenses were read from the installed packages (`package.json`, `LICENSE`
 files, Python package metadata) at the pinned versions, and for the models
 from their model cards.
-
-## Ideas and recipes credited
-
-No code was copied from other projects. These projects, both MIT, were read
-during design and some of their ideas are restated in our own code:
-
-| Project | License | What we took as an idea |
-|---|---|---|
-| explainroo | MIT | the `{shown\|spoken}` narration markup (extended here with language prefixes); checking narration with a speech recognizer; contact sheets of stills for QA; checks on the final file |
-| claude-code-video-toolkit | MIT | the two-pass loudness normalization recipe (-14 LUFS, -1.5 dBTP, LRA 11); caption pagination by length |
-
-Other ideas come from a comparison of six video tools run on the same brief.
-The ideas, and some measured values such as sizes and timings, were chosen
-after that comparison and are written down in our own words in
-[`skills/make/references/style.md`](plugins/video-director/skills/make/references/style.md).
-No code, text or palette of a tool whose license allows no reuse is in this
-repository.
 
 The official Remotion skills for Claude Code
 ([remotion-dev/claude-code-plugin](https://github.com/remotion-dev/claude-code-plugin))
@@ -93,8 +76,26 @@ already has), each file checked against a pinned size and sha256
 | Kokoro-82M v1.0, ONNX export | `kokoro-v1.0.onnx`, `voices-v1.0.bin` | releases of [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) (model-files-v1.0) | Apache-2.0 (model card of [hexgrad/Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M); kokoro-onnx states "kokoro model: Apache 2.0") |
 | faster-whisper small | `model.bin`, `config.json`, `tokenizer.json`, `vocabulary.txt` | [Systran/faster-whisper-small](https://huggingface.co/Systran/faster-whisper-small) at a pinned revision | MIT (model card); a CTranslate2 conversion of OpenAI's `whisper-small` |
 
+## Music and sound effects
+
+Generated at every render by the plugin's own code (`scripts/lib/music.mjs`,
+MIT like the rest): no sample, loop or recording of anyone else is used,
+and nothing is downloaded. When the user names a folder of their own sounds
+(`audioDir`), those files are read where they are at every render and mixed
+into that user's videos; they are never copied into the plugin, and their
+rights are the user's to check.
+
+## Fonts chosen by the user
+
+The text font can be one found on the user's machine or a font file the
+user names (`font`). Its files are copied into each video project that uses
+it, under `public/fonts/text/`, and that folder is left out of the video
+project's git; the font's license is the user's to check. Inter and
+JetBrains Mono, above, are the ones the plugin installs.
+
 ## Tools the user installs
 
-ffmpeg and ffprobe (render, loudness, contact sheets), Node.js and Python
-are installed by the user, at user level, with their own licenses. Setup
-prints the install command; it does not ship them.
+ffmpeg and ffprobe (render, loudness, the music and effects mix, decoding
+the user's own sounds, contact sheets), Node.js and Python are installed by
+the user, at user level, with their own licenses. Setup prints the install
+command; it does not ship them.

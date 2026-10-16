@@ -2,8 +2,9 @@ import React from "react";
 import { useCurrentFrame, useVideoConfig } from "remotion";
 import { StageFrame } from "../components/Stage";
 import { ease, lerp, tween } from "../motion";
+import { codeMinFont, codeWidth, TERMINAL_PAD } from "../lib/layout.mjs";
 import { useBeat, useShot, useShotEnd, useShotStart } from "../shot";
-import { BAND, mono, MONO_ADVANCE, tile, TYPE } from "../theme";
+import { alpha, DIMMED, mono, MONO_ADVANCE, tile, TYPE } from "../theme";
 
 export type CodeWalkProps = {
   file: string;
@@ -53,9 +54,18 @@ export const tokenize = (line: string, language: string): Token[] => {
   return [{ text: body, tone: "ink" }, ...rest];
 };
 
-/** A close-up on a file or long output (catalogue 2.3): push in, walk a band from line to line, pull back. */
+/**
+ * A close-up on a file or long output (catalogue 2.3): push in, walk a band
+ * from line to line, pull back. The card is as wide as its code needs (at
+ * least 60% of the full width, never more), and the zoom stops where the
+ * card, its band included, still fits between the frame margins: seen in
+ * test videos, a zoom that only kept the longest line inside let the card's
+ * edge and the band run off the right side (16:9 and 9:16). A card that
+ * already fills the width (long lines on a 1080 px wide frame) walks its
+ * band without a push.
+ */
 export const CodeWalk: React.FC = () => {
-  const { shot } = useShot();
+  const { shot, L } = useShot();
   const beat = useBeat();
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -64,19 +74,25 @@ export const CodeWalk: React.FC = () => {
   const props = shot.props as CodeWalkProps;
   const lines = String(props.code ?? "").replace(/\n$/, "").split("\n");
   const language = props.language ?? "text";
-  const zoom = Math.min(2, props.zoom ?? 1.6);
-
-  const fontSize = lines.length > 10 ? 30 : TYPE.code;
   const startLine = Number.isInteger(props.startLine) && props.startLine! > 0 ? props.startLine : undefined;
   const digits = startLine ? Math.max(2, String(startLine + lines.length - 1).length) : 0;
+  // 32 px (30 over 10 lines), down to 30 so the longest line fits the tile
+  // (down to 24 on 9:16 and 1:1)
+  const chars = Math.max(1, ...lines.map((l) => l.length)) + (startLine ? digits + 1 : 0);
+  const fits = Math.floor((codeWidth(L) - 2 * TERMINAL_PAD) / (chars * MONO_ADVANCE));
+  const fontSize = Math.max(codeMinFont(L), Math.min(lines.length > 10 ? 30 : TYPE.code, fits));
   const numberWidth = startLine ? fontSize * MONO_ADVANCE * (digits + 1) : 0;
   const rowH = Math.round(fontSize * 1.6);
   const header = 56;
-  const pad = 32;
-  const width = 1500;
-  const left = (1920 - width) / 2;
+  const pad = TERMINAL_PAD;
+  const textPx = Math.max(1, ...lines.map((l) => l.length)) * fontSize * MONO_ADVANCE + numberWidth + 2 * pad;
+  const filePx = String(props.file ?? "").length * TYPE.micro * MONO_ADVANCE + 48;
+  const width = Math.min(codeWidth(L), Math.ceil(Math.max(0.6 * codeWidth(L), textPx, filePx)));
+  const left = (L.width - width) / 2;
   const height = header + 2 * pad + lines.length * rowH;
-  const top = BAND.stageTop + Math.max(0, (BAND.stageBottom - BAND.stageTop - height) / 2);
+  const top = L.stageTop + Math.max(0, (L.stageH - height) / 2);
+  const longest = Math.max(1, ...lines.map((l) => l.length)) * fontSize * MONO_ADVANCE + numberWidth + 2 * pad;
+  const zoom = Math.max(1, Math.min(2, props.zoom ?? 1.6, (L.width - 2 * L.textMargin) / longest, (L.width - 2 * L.margin) / width));
 
   const walk = (props.walk ?? []).map((w) => ({ ...w, frame: beat(w.at) }));
   const first = walk[0]?.frame ?? shotStart + fps;
@@ -99,16 +115,18 @@ export const CodeWalk: React.FC = () => {
 
   // Camera: focus point F (screen coordinates at zoom 1) moves to the centre C.
   const fy = top + header + pad + bandLine * rowH + rowH / 2;
-  const fx = Math.min(960, left + pad + (960 - BAND.textMargin) / zoom);
-  const cx = 960;
-  const cy = 500;
-  const tx = fx * (1 - z) + (cx - fx) * pz;
+  const fx = Math.min(L.cx, left + pad + (L.cx - L.textMargin) / zoom);
+  const cx = L.cx;
+  const cy = L.stageCy;
+  let tx = fx * (1 - z) + (cx - fx) * pz;
+  // The whole card stays between the frame margins (it fits: see the zoom)
+  tx = Math.min(Math.max(tx, L.margin - z * left), L.width - L.margin - z * (left + width));
   let ty = fy * (1 - z) + (cy - fy) * pz;
   // Keep the zoomed tile inside the stage band (style rule 3) when it fits;
   // a taller tile is clipped to the band below.
-  const minY = BAND.stageTop + 8 - z * top;
-  const maxY = BAND.stageBottom - 8 - z * (top + height);
-  if (z * height <= BAND.stageBottom - BAND.stageTop - 16) ty = Math.min(Math.max(ty, minY), maxY);
+  const minY = L.stageTop + 8 - z * top;
+  const maxY = L.stageBottom - 8 - z * (top + height);
+  if (z * height <= L.stageH - 16) ty = Math.min(Math.max(ty, minY), maxY);
   else ty = Math.min(Math.max(ty, maxY), minY);
 
   const appear = tween(frame, shotStart - 2, shotStart + Math.round(0.3 * fps));
@@ -116,7 +134,7 @@ export const CodeWalk: React.FC = () => {
 
   return (
     <StageFrame>
-      <div style={{ position: "absolute", inset: 0, clipPath: `inset(${BAND.stageTop - 12}px 0 ${1080 - BAND.stageBottom - 12}px 0)` }}>
+      <div style={{ position: "absolute", inset: 0, clipPath: `inset(${L.stageTop - 12}px 0 ${L.height - L.stageBottom - 12}px 0)` }}>
       <div
         style={{
           position: "absolute",
@@ -163,13 +181,13 @@ export const CodeWalk: React.FC = () => {
                   top: pad + bandLine * rowH,
                   height: rowH,
                   borderRadius: 8,
-                  backgroundColor: "rgba(96,165,250,0.20)",
+                  backgroundColor: alpha(tile.accent, 0.2),
                   opacity: bandOn,
                 }}
               />
             ) : null}
             {lines.map((line, i) => (
-              <div key={i} style={{ position: "relative", opacity: activeLine >= 0 && i !== activeLine ? lerp(1, 0.3, bandOn) : 1 }}>
+              <div key={i} style={{ position: "relative", opacity: activeLine >= 0 && i !== activeLine ? lerp(1, DIMMED, bandOn) : 1 }}>
                 {numberWidth ? (
                   <span style={{ color: tile.dim, opacity: 0.6, display: "inline-block", width: numberWidth }}>
                     {String(startLine! + i).padStart(digits, " ")}

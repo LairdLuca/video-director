@@ -8,8 +8,8 @@ statement comes from `facts.md`, and every command shows its source.
 
 Where this comes from: a video is quick to watch but slow to copy from, so
 the commands and values go on a page next to it (a design decision of this
-plugin); the "facts only, with a source" rule comes from a comparison of six
-video tools, where the clearest results cited a facts file for every value.
+plugin); the "facts only, with a source" rule was seen in test runs, where the
+clearest results cited a facts file for every value.
 
 ## What the page is
 
@@ -89,6 +89,7 @@ video tools, where the clearest results cited a facts file for every value.
 | `sections[].heading` | yes | A short heading. |
 | `sections[].body` | yes | A string (blank lines split paragraphs) or a list of paragraphs. |
 | `sections[].commands[]` | no | `text` (exact, as in `facts.md`; multi-line allowed) and `source` (`facts.md:14`, `facts.md:48-53`, a commit, a file). Shown as code: only for commands, output and code. |
+| `sections[].source` | no | The source of a section of prose only (a lesson, a summary of what follows), e.g. `facts.md:74-75`, shown under its text. Seen in a review: a lesson section had no source to show. A section with commands or values cites them there instead. |
 | `sections[].values[]` | no | Values that are not commands: codes, names, paths, counts, dates. `text` (as in `facts.md`), `source`, optional `label`. Shown as a list of label and value, not as code. Before this field, a video without a terminal had its codes on the page as code blocks. |
 | `decisions[]` | no | Omit when there are none. Each needs `question`, `owner`, `source`; `options` is a list of `{ label, tradeoff }`: two or more (each with its `tradeoff`), one (a proposal to confirm; `tradeoff` optional) or none (`[]` or left out). Optional `note`, one line from the facts. |
 | `transcript` | yes | A string, a list of strings, or a list of `{ chapter, text }`. Use the *shown* text of each sentence (exact spelling), not the respelling for the voice. |
@@ -105,8 +106,11 @@ variables are not filled in in reference files or in the shell.)
 It validates `page.json` first and lists every problem (exit code 1), then
 checks the page against `facts.md` and prints warnings for: a `facts.md:N`
 source past the end of the file or on a blank line, a command line or a
-value not found in `facts.md`, and a number of 3 or more digits that
-`facts.md` never writes. Then it writes the page. It warns when the MP4 is
+value not found in `facts.md`, a number of 3 or more digits that
+`facts.md` never writes, and a number of 3 or more digits that `facts.md`
+has but the section shows without a source (no value, command or section
+`source` with it: seen in a review, 503 and 200 in a section's text with
+no source on the page). Then it writes the page. It warns when the MP4 is
 not yet next to the page. Run it after `render.mjs`, or before it: the link
 works as soon as the video lands.
 
@@ -127,6 +131,8 @@ page statements with no fact behind them, and no script had seen them.
   `values`.
 - A second option invented so a decision has two: write the one the facts
   give, or none.
+- A number in a section's text with no source: put it in `values` with its
+  source, or give a prose-only section its `source`.
 
 ## Not yet proven
 
@@ -138,3 +144,5 @@ page statements with no fact behind them, and no script had seen them.
   during development.
 - `values` and decisions with 0 or 1 option: built on test data and read as
   HTML text, not yet used by a video.
+- `sections[].source`: built and checked on a test video's page, read as
+  HTML text.

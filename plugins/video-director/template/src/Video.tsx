@@ -3,6 +3,7 @@ import React from "react";
 import { AbsoluteFill, Audio, interpolate, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { Grain } from "./components/Stage";
 import { customScene } from "./custom";
+import { type Layout, layoutFor } from "./lib/layout.mjs";
 import { mixAt, type Timeline, type TimelineShot } from "./lib/timeline.mjs";
 import { Captions } from "./overlays/Captions";
 import { ChapterBar } from "./overlays/ChapterBar";
@@ -15,10 +16,10 @@ import { transitionFor } from "./transitions";
 // bottom-right corner, outside the caption band, to read a contact sheet.
 export type VideoProps = { timeline: Timeline | null; qaLabel?: string };
 
-const ShotView: React.FC<{ shot: TimelineShot }> = ({ shot }) => {
+const ShotView: React.FC<{ shot: TimelineShot; layout: Layout }> = ({ shot, layout }) => {
   const Scene = shot.scene === "Custom" ? customScene(shot.component ?? "") : scenes[shot.scene];
   return (
-    <ShotProvider shot={shot}>
+    <ShotProvider shot={shot} layout={layout}>
       <Scene />
     </ShotProvider>
   );
@@ -48,16 +49,17 @@ export const Video: React.FC<VideoProps> = ({ timeline, qaLabel }) => {
     throw new Error(`storyboard.json / voiceover.json have errors (run the lint):\n${timeline.errors.join("\n")}`);
   }
   const bg = mixPalette(mixAt(timeline, frame, (s) => (s.theme === "dark" ? 1 : 0), { handover: true })).bg;
+  const layout = layoutFor(timeline.width, timeline.height, timeline.parts.length ? 2 : 1);
 
   const series: React.ReactNode[] = [];
   timeline.shots.forEach((shot, i) => {
     if (i > 0 && shot.transitionIn) {
-      const { presentation, timing } = transitionFor(shot.transitionIn, timeline.shots[i - 1].theme === "dark");
+      const { presentation, timing } = transitionFor(shot.transitionIn, timeline.shots[i - 1].theme === "dark", timeline.width);
       series.push(<TransitionSeries.Transition key={`t-${shot.id}`} presentation={presentation} timing={timing} />);
     }
     series.push(
       <TransitionSeries.Sequence key={`s-${shot.id}`} name={`${shot.id} ${shot.scene}`} durationInFrames={shot.durationInFrames}>
-        <ShotView shot={shot} />
+        <ShotView shot={shot} layout={layout} />
       </TransitionSeries.Sequence>,
     );
   });
@@ -66,8 +68,8 @@ export const Video: React.FC<VideoProps> = ({ timeline, qaLabel }) => {
     <AbsoluteFill style={{ backgroundColor: bg }}>
       <TransitionSeries name="Shots">{series}</TransitionSeries>
       <Grain />
-      <ChapterBar timeline={timeline} />
-      <Captions timeline={timeline} />
+      <ChapterBar timeline={timeline} layout={layout} />
+      <Captions timeline={timeline} layout={layout} />
       {timeline.sentences
         .filter((s) => s.file)
         .map((s) => (

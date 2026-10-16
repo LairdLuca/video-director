@@ -80,6 +80,14 @@ When the automatic choice is wrong or missing, mark it:
 
 Rules:
 
+- **No markup inside backticks.** Backticks make the whole part code, said
+  as written: `` `{kubectl rollout restart|ipa:...}` `` would have the
+  voice spell the IPA aloud, letter by letter (seen in a test video, where
+  the check still heard the command's words). `voice.mjs` refuses such a
+  line with an error. Write the markup without the backticks: a
+  `{shown|spoken}` whose shown side is a command is drawn as code all the
+  same. A shell pipe or `${VAR}` inside backticks is fine; a literal
+  `{a|b}` in code is written `\{a|b\}`.
 - **Shown text is exact.** What reaches the screen and the captions is the
   text minus the markup, never the spoken form. Write terms with their real
   spelling and case.
@@ -97,7 +105,37 @@ Rules:
 - **Words that exist in both languages** (data, file, come) are left out of
   the glossary on purpose. Mark them when they are meant in English.
 - **Brands that read the same in both languages stay in the narration
-  language** (Grafana): the English vowels came out worse in the prototype.
+  language** (such as "YouTube"): the English vowels came out
+  worse in the prototype.
+
+### Code words in the captions
+
+The captions draw commands, file names and identifiers in JetBrains Mono
+(style rule 7), so the voice step marks each shown word that is code
+(`words[].code` in contract B). The markup decides, nothing else has to be
+written:
+
+| In the narration | Code? |
+|---|---|
+| `` `kubectl logs --previous` `` (backticks) | yes, every word |
+| an identifier shape found automatically: `DATABASE_URL`, `CrashLoopBackOff`, `checkout-db`, `--force`, `app.yaml` | yes |
+| a glossary term written in backticks in the glossary (`` `kubectl describe` ``, `` `rollout restart` ``) | yes |
+| a path: `/etc/hosts`, `./run.sh`, `src/app.ts` | yes |
+| `{shown\|spoken}` whose shown side is one of the above (`{rollout restart\|ipa:...}`), or a command that starts with a code term of the glossary (`{kubectl rollout restart\|ipa:...}`) | yes |
+| a glossary word (`pod`, `deploy`, `back-off`), a number, a version | no |
+| a language marker, `{en:back-off}`, `{it:main}` | no: the way to keep a hyphenated English word in the text font |
+
+Punctuation around a code word stays in the text font (`DATABASE_URL,`),
+except a colon, which stays with the code (`env:`, as a YAML key is
+written): only `.`, `,` and `;` are the sentence's. A key or field name
+that is code is written in backticks even when it is a plain lowercase
+word (`` `url` ``, `` `env` ``): no shape gives it away, and without
+backticks it stays in the text font while the identifiers around it are in
+mono (seen in a test video's captions).
+Extra code terms for one video go in `<videoDir>/glossary.txt` in backticks,
+one per line. Source: our choice, so that a command in a caption reads as the
+command shown in the terminal above it; the shapes are the ones the voice
+already uses to find English terms, plus paths.
 
 ## Contract B: `voiceover.json`
 
@@ -114,7 +152,8 @@ Rules:
     { "id": "s01", "chapter": "problem", "file": "voice/s01.wav",
       "durationMs": 5120, "pauseAfterMs": 400,
       "shown": "Il pod di checkout è in CrashLoopBackOff: manca DATABASE_URL.",
-      "words": [{ "text": "Il", "startMs": 0, "endMs": 180 }],
+      "words": [{ "text": "Il", "startMs": 0, "endMs": 180 },
+                { "text": "DATABASE_URL.", "startMs": 4210, "endMs": 5050, "code": true }],
       "timing": "whisper",
       "probe": { "terms": [{ "term": "CrashLoopBackOff", "heard": "Crash Loop Back Off", "ok": true }] },
       "notHeard": [] }
@@ -127,6 +166,10 @@ Rules:
   is one entry per space-separated word of `shown`. Whisper's words are aligned
   to them letter by letter; words it fused or missed get times between their
   neighbours.
+- `words[].code`: `true` on a command, file name or identifier (see "Code
+  words in the captions"), left out otherwise. It is marked again on every
+  run, also on sentences that are not synthesized again, so a glossary change
+  reaches the captions without new audio.
 - `pauseAfterMs`: 400 inside a chapter, 800 before a new chapter, 0 after the
   last sentence. The template adds a 250 ms lead-in and a 600 ms tail;
   `summary.videoMs` includes them.
@@ -157,13 +200,17 @@ Rules:
   "whisper"`); with `--no-check` they are left out, never written as empty.
 - `summary` is at the top so one read tells the length, the pace and what
   failed. `spokenWordsPerSecond` counts the words that are said (`2.4.0` is
-  "2 punto 4 punto 0", five words; `DATABASE_URL` two), except that a part
-  whose shown text is an acronym counts its shown words (`{SSO|esse esse o}`
-  is one word: letter names are short, and counting three per acronym put a
-  test video over the target with nothing too fast). `wordsPerSecond`
-  counts the shown words. The pace target is for the spoken one: a script
-  with many numbers, versions or identifiers has a low shown pace by
-  construction.
+  "2 punto 4 punto 0", five words; `DATABASE_URL` two), and **an acronym
+  weighs half a word per letter, at least one word**: `SSO` and `API` 1.5,
+  `HTTP` 2, `F5` 1, whether it is spelled with markup (`{SSO|esse esse o}`)
+  or left as it is. An acronym said as a word (`{RAM|ram}`) and the
+  capitals inside an identifier (`DB_HOST`) count as words. Counting one
+  word per letter put a test video over the target with nothing too fast;
+  0.1.0 then counted one word per acronym, and the user of this plugin
+  chose the middle.
+  `wordsPerSecond` counts the shown words. The pace target is for the
+  spoken one: a script with many numbers, versions or identifiers has a low
+  shown pace by construction.
 - `terms`/`termsHeard` count English parts, `marked`/`markedHeard` the marked
   parts; `saidInNarrationLanguage` lists the English terms said in the
   narration language, so "terms heard 3/3" does not hide them. `notHeard`
@@ -211,7 +258,8 @@ Fixes, in this order:
 - **Rephrase**: avoid an elided article right before the term (`l'health
   check`), or move the term to the end of a phrase.
 - **Glossary**: `<videoDir>/glossary.txt`, one English term per line, for
-  terms the automatic marking should catch in this video.
+  terms the automatic marking should catch in this video; a term in
+  backticks is also code in the captions.
 
 A marked part not heard (`kind: marked`) gets its own fixes: for an acronym,
 the letters as the narration language names them or the acronym said as one
@@ -227,8 +275,8 @@ known words. If the user listens and complains, the ear wins over the check.
 ## Speed
 
 Each voice has a default Kokoro speed that puts the narration at 2.3-2.7 words
-per second while speaking (style rule: the pace of the clearest video in a
-comparison of six tools). `im_nicola` is about 13% slower than `if_sara` at the
+per second while speaking (style rule 19: the pace of the clearest of the
+earlier test videos). `im_nicola` is about 13% slower than `if_sara` at the
 same speed (82.6 s against 73.1 s of speech for the same narration at 1.0). The
 summary prints the measured pace twice: on the spoken words, which the target
 is for, and on the shown words. Do not raise the speed above 1.15 to fit a
@@ -248,26 +296,49 @@ Kokoro's speed is not linear in the pace: +10% speed gave about +5% words
 per second, because the pauses at punctuation do not shrink as much. Other
 voices start at 1.0; check `spokenWordsPerSecond` in the summary.
 
-### Pace over 2.7
+### Estimate before the checkpoint
+
+`voice.mjs <videoDir> --estimate` gives the expected pace and length of
+`script.json` without synthesis or models, from the spoken words (numbers
+and versions said in words, acronyms at half a word a letter) and the
+video's speed: about 2.80 spoken words per second at a voice's default
+speed, following the speed to the power 0.6. Those figures were measured
+on the dense technical narrations of the test videos with `im_nicola`
+(2.75-2.85 at 1.15, 2.72-2.73 at 1.10, 2.66 at 1.05), and they are used
+for every voice until another is measured. On two test videos the estimate
+was within 0.3 s of the rendered length. It writes `qa/voice-estimate.json`.
+
+### Pace over 3.0
 
 Cutting words shortens the video; it does not lower the pace, which is words
 per second of speech. Dense narration (many numbers, codes and short
-sentences) can run over 2.7 spoken words per second at the default speed:
-two test videos with `im_nicola` at 1.15 measured 2.77 and 2.82. Then:
+sentences) runs a little over 2.7 spoken words per second at the default
+speed: test videos with `im_nicola` at 1.15 measured 2.75, 2.77, 2.82 and
+2.85. **Up to 3.0 it is only noted** (`OUTCOME.md`, the voice line): the
+narration is still easy to follow, and lowering the speed means
+synthesizing every sentence again. The user's words: a video ready sooner
+matters more than more correction rounds. Over 3.0:
 
 1. Lower the speed **for this video** by 0.05 and run the voice step again
    (every sentence is synthesized again, about 2 minutes):
    ```
-   node "<plugin>/scripts/config.mjs" video <videoDir> --data "<data>" --project . speed=1.10
+   node "<plugin>/scripts/config.mjs" video <videoDir> --data "<data>" --project . --chosen speed speed=1.10
    node "<plugin>/scripts/voice.mjs" <videoDir>
    ```
-   One test video went from 2.77 to 2.69 this way. Keep the other overrides
-   of the video in the same `config.mjs video` line: it rewrites the file.
-2. Still over 2.7: one more step (1.05), not below 1.0; or split long
-   sentences with a comma or a full stop, since the pauses at punctuation
-   lower the pace.
+   One test video went from 2.77 to 2.69 this way, and lowering the speed
+   adds length (a 9:16 test video gained about 4 s). The video's other
+   overrides (format, music style) are kept: `config.mjs video` reads them
+   from its `video.config.json`. Better: see it in `--estimate`, before
+   the checkpoint, and set the speed before the first synthesis.
+2. Still over 3.0: one more step, not below 1.0; or split long sentences
+   with a comma or a full stop, since the pauses at punctuation lower the
+   pace.
 3. Write the speed in `OUTCOME.md` under "Choices", as the director's
    choice, not the user's.
+
+A wrong pronunciation can depend on the speed (a test video's `manifest`
+was heard right at 1.10 and wrong at 1.15): when the speed changes anyway,
+change it before the pronunciation rounds.
 
 Never raise the speed above the default to make a video shorter.
 
@@ -290,7 +361,11 @@ nothing on a second run.
   (the scripts do it for you).
 - Treating `ok: true` as "sounds right": it means Whisper understood it.
 - Cutting words to bring a fast pace down: the video gets shorter, the pace
-  stays the same (see "Pace over 2.7").
+  stays the same (see "Pace over 3.0").
+- Lowering the speed for a pace between 2.7 and 3.0: a full synthesis
+  again for a difference nobody hears; note it instead.
+- Writing a command as `{en:kubectl apply}`: it is said right but drawn as a
+  word in the captions. Use backticks for a command, `{en:...}` for a word.
 
 ## Not yet proven
 
@@ -306,6 +381,9 @@ nothing on a second run.
 - The check of marked parts on a whole video: tried with `--try` on one
   sentence with three spelled acronyms (two heard, one heard as another
   word, as a test video's review had found by ear), and in the unit tests.
+- Code words in the captions: the marking ran in the unit tests and on the
+  example's narration, and the captions were checked on stills of a video
+  with estimated word times; not yet in a video with measured voice.
 - `kubelet` in the base lexicon: the same entry an example video proved;
   `pod` and `manifest` are left to the video's own lexicon, since the British
   `pod` variant made the next word sound different in one test.

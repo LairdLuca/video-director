@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Installs or reconfigures video-director, once per machine. Checks Node, Python, ffmpeg, disk and memory, builds the local voice runtime and models at user level, and asks the install-time choices (language, voice with a sample, captions, HTML page, checkpoints, video folder). Use only when the user explicitly asks to install, set up or reconfigure video-director, or to change its default voice, language, captions, page or checkpoints. Never use it to make a video.
+description: Installs or reconfigures video-director, once per machine. Checks Node, Python, ffmpeg, disk and memory, builds the local voice runtime and models at user level, and asks the install-time choices (language, voice with a sample, captions, HTML page, checkpoints, video folder, light and dark paper, text font, music, sound effects, a folder of one's own sounds). Use only when the user explicitly asks to install, set up or reconfigure video-director, or to change its default voice, language, captions, page, checkpoints, palettes, font, music or sound effects. Never use it to make a video.
 argument-hint: "[optional: an existing folder with the Kokoro and Whisper models]"
 ---
 
@@ -44,8 +44,8 @@ answer.
    disk. Source: the models are about 840 MB; during development they were
    found on disk from an earlier prototype and reused instead of downloaded.
 5. **Do not play or open anything**: give the sample paths, the user plays
-   them. Source: the same as rule 5 of the make skill: in the comparison, a
-   tool opened a window of the user's browser on its own.
+   them. Source: the same as rule 5 of the make skill: seen in test runs, a
+   window of the user's browser opened on its own.
 
 ## Steps
 
@@ -118,7 +118,16 @@ gives the current values; offer them as the defaults.
 | `openOnDelivery` | When a video is ready, open its page (or the MP4) by itself with your default program? | yes |
 | `checkpoints` | Where should video-making stop for your OK: `none`, `narration` (the script, before the voice), or `narration+preview` (also the stills before the render)? | `narration` |
 | `videosDir` | Folder for the video projects, relative to the project? Each video takes about 600 MB. Save it relative (`videos`, `docs/videos`); save an absolute path only if the user wants every project's videos in that one folder, and say so (`config.mjs set` warns) | `videos` |
-| `resolution` | (no question) 1920x1080, 16:9; the only size in this version | `1080p` |
+| `paletteLight` | Which paper for the light stage? See below | `giallo` |
+| `paletteDark` | Which paper for the dark stage (close-ups, code, the lesson)? `notte`, a faded neutral black with dim blue squares, or `ardesia`, slate with warm white ink and dim green graph paper | `notte` |
+| `font` | Which font for the text on screen? See below | `inter` |
+| `music` | Background music under the narration? See below | yes |
+| `musicStyle` | (no question) say that Claude picks the style for each video from what it describes, and that the user can ask for one; save `musicStyle` only if the user wants one style for every video | `auto` |
+| `sfx` | Short sound effects at chapter changes and at a few key moments (the error that appears, the check that passes), only in the pauses of the narration? | yes |
+| `audioDir` | (only when `music` or `sfx` is yes) A folder of your own music and effects, used instead of the generated ones? See below | none |
+| `musicLevel` | (no question) the music sits 16 LU under the voice; say that "music lower" works for one video or for all (`normal` 20 LU, `low` 24 LU) | `high` |
+| `format` | (no question) say that each video is 16:9, 9:16 or 1:1, picked from the subject, and that the user can ask for one; save `format` only if the user wants every video in one format | `auto` |
+| `resolution` | (no question) 1080 px on the short side, in every format | `1080p` |
 
 **The voice.** List the voices of the chosen language:
 
@@ -138,6 +147,55 @@ ask which voice to keep. Make more samples if asked. Each voice has its own
 default speed, tuned to about 2.4 words per second; do not ask about speed
 unless the user brings it up (key `speed`, 0.7-1.3).
 
+**The light paper.** Offer the default and the others in one short list,
+with the words of style rule 8 ([../make/references/style.md](../make/references/style.md)):
+`giallo` (yellow notepad, blue squares, red margin; the default),
+`quaderno` (school notebook, white), `milli` (blue graph paper), `arancio`
+(orange graph paper), `tecnico` (green engineering pad), `rosso`, `verde`,
+`grigio` (squares in that colour). There are no sample images: the user
+sees the paper on the first video's stills and can change it then, for
+that video or for all.
+
+**The font.** List the fonts this machine has that fit:
+
+```
+node "${CLAUDE_PLUGIN_ROOT}/scripts/fonts.mjs" list
+```
+
+Offer Inter (bundled, the default) and the first two or three of the list,
+plus "a font file of yours". For a file, run `fonts.mjs check "<file>"` and
+tell the user what it says (a single file gives no real bold, and a
+`.woff` or `.woff2` loads as weight 400 even when it is variable; a font
+whose maker restricts embedding gets a warning). Say that the chosen font is
+copied into each video folder and kept out of git there. Save it as
+`font=<family as listed>` or `font=<file path>`.
+
+**Music and effects.** Say that both are made by the plugin itself, from
+the video's name: no audio of anyone else, nothing downloaded, the same
+video always sounds the same. The music is a quiet bed under the voice: it
+drops while the voice speaks (16 LU under it), rises a little in the long
+pauses, changes slightly at each chapter and ends with the video. There are
+three styles, with the words of style rule 32
+([../make/references/style.md](../make/references/style.md)): `warm` (soft
+pad, round bass, a slow upper line; calm), `pulse` (a soft bass on every
+beat, the chord breathing on the beat; more rhythm), `minimal` (glassy pad,
+a faint bass, a slow glassy line; the most discreet). No note starts
+sharply, in any style. Do not ask which one: Claude picks it for
+each video from what the video describes (a calm bed for an explanation,
+more rhythm for a short demo, the most discreet for an incident or a lot of
+code), and says which in one line. If the user wants one style always,
+save it. There are no samples here: the user hears it in the first video
+and can change it then, for that video or for all. Effects never play over
+the voice: each one waits for a pause.
+
+**A folder of one's own sounds.** Optional. Files named `music...`,
+`chapter...`, `error...`, `success...` (wav, mp3, ogg, flac, m4a, aac or
+opus); a kind found there replaces the generated one, at the same level and
+in the same pauses; with several `music` files, each video takes one. Say
+that the user is responsible for the rights of those files, that they are
+read from the folder at every render and never copied into the plugin.
+Save it as `audioDir=<path>`; check that the folder exists.
+
 ### 5. Save
 
 Always run `set`, with the keys the user changed from the default (a key left
@@ -151,8 +209,10 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" set --data "${CLAUDE_PLUGIN_DATA
 When the user kept every default, run it with no `key=value`: it still writes
 `config.json` (an empty `{}` on a first setup), which records that setup ran.
 `set` checks every value (unknown keys, languages and voices included) and
-writes nothing if one is wrong. To go back to a
-default: `config.mjs unset --data "${CLAUDE_PLUGIN_DATA}" <key>`. Then:
+writes nothing if one is wrong. A value equal to its default is not
+saved, and a default an earlier setup saved is removed by any `set`. When
+an answer on a re-run goes back to the default, `unset` the key:
+`config.mjs unset --data "${CLAUDE_PLUGIN_DATA}" <key>`. Then:
 
 ```
 node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" show --data "${CLAUDE_PLUGIN_DATA}" --project .
@@ -177,13 +237,26 @@ use it for a company with more than 3 people.
 - Skipping `set` because every answer was the default: run it with no
   `key=value`, so `config.json` is written.
 - Opening the sample WAV in a player for the user.
+- Saving `audioDir` with a folder of someone else's music without saying
+  that its rights are the user's to check.
+- Asking which music style to use, or saving `musicStyle=warm` as an answer
+  nobody gave: the default `auto` lets each video take the style that fits
+  its subject.
+- Proposing a font that `fonts.mjs list` does not list (a serif, a code
+  font, one without the full Latin alphabet): the captions and labels are
+  made for a readable sans-serif.
 - Retrying a step that failed for missing rights with elevation.
 
 ## Not yet proven
 
 - The install commands `doctor` prints for macOS and Linux, and the winget
   ones on a machine that has no Python or ffmpeg at all.
-- Downloading the large model files (only a small file of the pinned set was
-  downloaded during development; the code path is the same).
 - Downloads behind a proxy: Node's fetch does not read proxy variables.
 - Languages other than Italian.
+- The palette, font, music and sound questions: written for this version,
+  not yet asked in a fresh setup; the font list was run on Windows only.
+- The music style left to Claude for every video (`auto`): not yet tried
+  on a series of real videos.
+- A folder of one's own sounds: tried with test files made for the purpose
+  (an MP3 shorter than the film, looped, and WAV and OGG effects), not with
+  real music.

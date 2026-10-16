@@ -20,7 +20,16 @@ apply to it.
 | `openOnDelivery` | `true`, `false` | `true` | at delivery, `open.mjs` opens the page (or the MP4 when `page` is false) with the default program |
 | `checkpoints` | `none`, `narration`, `narration+preview` | `narration` | where the make skill stops for the user's OK |
 | `videosDir` | a folder | `videos` (relative to the project) | where video projects are created |
-| `resolution` | `1080p` | `1080p` | 16:9, 1920x1080 |
+| `format` | `auto`, `16:9`, `9:16`, `1:1` | `auto` | the frame's shape; `auto`: Claude picks it for each video from the subject (style rule 1) |
+| `resolution` | `1080p` | `1080p` | 1080 px on the short side, in every format |
+| `paletteLight` | `giallo`, `quaderno`, `milli`, `arancio`, `tecnico`, `rosso`, `verde`, `grigio` | `giallo` | the paper of the light stage (style rule 8) |
+| `paletteDark` | `notte`, `ardesia` | `notte` | the paper of the dark stage |
+| `font` | `inter`, a font family found on this machine, or the path of a `.ttf`, `.otf`, `.woff` or `.woff2` file | `inter` | the text font of the video (style rule 11); code is always JetBrains Mono |
+| `music` | `true`, `false` | `true` | background music under the narration, ducked under the voice (style rule 32) |
+| `musicStyle` | `auto`, `warm`, `pulse`, `minimal` | `auto` | character of the generated music: calm, more rhythm, most discreet; `auto`: Claude picks it for each video from what it describes (style rule 32, "Choosing the music style") |
+| `musicLevel` | `low`, `normal`, `high` | `high` | the music while the voice speaks: 24, 20 or 16 LU under it |
+| `sfx` | `true`, `false` | `true` | short effects at chapter changes and on the shots' `sfx` moments, only in pauses |
+| `audioDir` | a folder, or `none` | none | the user's own sounds (`music*`, `chapter*`, `error*`, `success*`); a kind found there replaces the generated one; `none` for one video uses the generated ones |
 | `flagDashes` | `true`, `false` | `false` | say `--atomic` as "dash dash atomic" instead of "atomic" |
 | `modelsDir` | a folder | `<data>/models` | voice and Whisper models; can point at an existing folder |
 | `runtimeDir` | a folder | `<data>/runtime` | the voice step's Python venv |
@@ -57,8 +66,49 @@ pair:
 Example `config.json` (only the keys the user changed are saved):
 
 ```json
-{ "voice": "if_sara", "checkpoints": "none", "videosDir": "docs/videos" }
+{ "voice": "if_sara", "checkpoints": "none", "videosDir": "docs/videos", "paletteLight": "quaderno", "font": "Acme Sans" }
 ```
+
+**Music and effects.** `render.mjs` builds them at every render (a few
+seconds: 3 to 4 s for an 84 s video) and mixes them under the narration before the loudness
+passes; `audio.mjs <videoDir>` builds them alone, to check where the
+effects fall. The generated music is seeded by the video's slug: the same
+video always gets the same music. `audioDir` is resolved against the
+project like `videosDir`; files are matched by the start of their name
+(`music-calm.mp3`, `chapter.wav`, `error_1.ogg`), and with several of a
+kind each video takes one, picked by its slug. A music file shorter than
+the film is looped with a 2 s crossfade, a longer one is cut; both fade
+out with the film. An effect file longer than its pause is cut with a
+40 ms fade. The files are read where they are at every render; nothing is
+copied into the plugin. The levels are set by measure, not by the files'
+own volume: music at `musicLevel` under the voice, effects 8 LU under it.
+A file that ffmpeg cannot decode (a truncated download, a protected `.m4a`,
+a codec the local ffmpeg lacks) is a warning at the lint and at the
+render, and another file of its kind, or the generated sound, is used: the
+lint decodes every file, so the warning comes before any render. Seen in a
+review: one such file stopped the render after the whole film had
+rendered.
+
+**The text font.** `set` and `video` check a `font` value before saving it:
+a family name must be found in the system or user font folders (Windows:
+`%WINDIR%\Fonts` and `%LOCALAPPDATA%\Microsoft\Windows\Fonts`; macOS:
+`/System/Library/Fonts`, `/Library/Fonts`, `~/Library/Fonts`; Linux:
+`/usr/share/fonts`, `/usr/local/share/fonts`, `~/.local/share/fonts`,
+`~/.fonts`) with an upright regular file; a file must exist. A family, or
+a `.ttf` or `.otf` file, that lacks more than 20 letters of the Latin
+alphabet the plugin checks (the full alphabet with Central and Eastern
+European letters) is refused: a symbol font would draw the captions as
+symbols. `fonts.mjs list` gives the fonts
+worth proposing. `config.mjs video` resolves the font to its files
+(`fontFiles` in `video.config.json`); the lint and the QA scripts copy them
+into `<videoDir>/public/fonts/text/` and the template loads them from
+there. A family with a regular, a semibold and a bold file uses all three; a
+single file gives the other weights by the browser's synthesis (a variable
+`.ttf` or `.otf`: its weight range). A `.woff` or `.woff2` file is not
+read, so it loads as weight 400 even when it is variable, and captions and
+labels (600, 700) get a synthesised bold: for a variable font, give its
+`.ttf`. A font no longer on the machine when a video is
+made falls back to Inter, with a warning.
 
 ## Commands
 
@@ -80,15 +130,35 @@ node "<plugin>/scripts/config.mjs" video <videoDir> --data "<data>" captions=fal
   that is not one of the Kokoro voices of those languages. With no
   `key=value` it writes `config.json` as it is (`{}` on a first setup where
   every answer was the default), so the file always exists after setup.
+  A key whose value is its default is left out, also one an earlier setup
+  saved (seen in a test re-run: `videosDir=videos` still saved), and `set`
+  says which; a key that differs from the default goes with `unset`.
 - `doctor` exit code 0 means the plugin is set up (runtime and models in
   place); a missing `config.json` is a `warn` line and means every default
   applies.
 - `video` writes `<videoDir>/video.config.json` and prints the values that did
   not come from a default, with their source. `videosDir` is the folder
-  that holds `<videoDir>`.
+  that holds `<videoDir>`; with `--project` inside the videos folder (run
+  from the video's own folder, say), the project above it is used, with a
+  warning. `--chosen format,musicStyle` marks the values Claude chose
+  (step 1 of the make skill) as `claude` instead of `override`, so the
+  OUTCOME says who chose. Run again on a video that already has a
+  `video.config.json` (a change after delivery), it keeps that video's
+  overrides, the keys its `from` marks `override` or `claude`, unless they are given
+  again: `config.mjs video <videoDir> ... musicLevel=normal` keeps the
+  video's `format` and `musicStyle`. `key=default` drops a kept override, so
+  the key goes back to `config.json`. A new `language=` drops a kept voice,
+  and a new `language=` or `voice=` drops a kept speed. An override equal to
+  the value in `config.json` is recorded as `config`.
 - `show` prints the effective config plus `modelsFound` (the folders that
   really hold the model files, which can be outside `modelsDir` when setup
   found them elsewhere) and `modelsMissing`.
+- `format=auto` in `video` (no format given for the video and none in
+  `config.json`) is a warning: 16:9 is used. Pass the format chosen at step
+  1 of the make skill.
+- `musicStyle=auto` in `video` works the same way: with music on, a
+  warning, and `warm` is used. Pass the style chosen at step 1 of the make
+  skill.
 - Values: `true`/`false` (also `on`/`off`, `yes`/`no`), numbers, `auto` for
   speed, text otherwise.
 
@@ -96,21 +166,27 @@ node "<plugin>/scripts/config.mjs" video <videoDir> --data "<data>" captions=fal
 
 Every key above, resolved, plus:
 
-- `width`, `height` from `resolution`;
+- `width`, `height` from `format` (1920x1080, 1080x1920 or 1080x1080);
+- `fontName` and `fontFiles` (`[{ "path", "weight" }]`, empty for Inter):
+  the text font's family and files, found when `video` ran;
 - `dataDir`;
 - absolute `videosDir`, `modelsDir`, `runtimeDir`, with forward slashes;
-- `from`: for each key, `default`, `config`, `override` or `voice default`, so
-  the video's OUTCOME can say which choices were the user's.
+- `from`: for each key, `default`, `config`, `override` (the user's wish for
+  this video), `claude` (Claude's choice for this video, `--chosen`) or
+  `voice default`, so the video's OUTCOME can say who chose what.
 
 ```json
 {
   "language": "it", "engine": "kokoro", "voice": "im_nicola", "speed": 1.15,
   "captions": false, "page": true, "checkpoints": "narration",
-  "videosDir": "/home/dev/acme-shop/videos", "resolution": "1080p", "flagDashes": false,
+  "videosDir": "/home/dev/acme-shop/videos", "format": "9:16", "resolution": "1080p",
+  "paletteLight": "giallo", "paletteDark": "notte", "font": "inter",
+  "music": true, "musicStyle": "minimal", "musicLevel": "high", "sfx": true, "audioDir": null, "flagDashes": false,
   "modelsDir": "/home/dev/.claude/plugins/data/video-director-video-director/models",
   "runtimeDir": "/home/dev/.claude/plugins/data/video-director-video-director/runtime",
-  "width": 1920, "height": 1080, "dataDir": "/home/dev/.claude/plugins/data/video-director-video-director",
-  "from": { "captions": "override", "voice": "default", "speed": "voice default" }
+  "width": 1080, "height": 1920, "dataDir": "/home/dev/.claude/plugins/data/video-director-video-director",
+  "fontFiles": [], "fontName": "Inter",
+  "from": { "captions": "override", "format": "claude", "musicStyle": "claude", "voice": "default", "speed": "voice default" }
 }
 ```
 
@@ -126,6 +202,21 @@ Every key above, resolved, plus:
 | "in English" | `language=en` (the voice follows) |
 | "don't stop to ask" | `checkpoints=none` |
 | "put it in docs/videos" | no key: pass that folder to `new-video`; `config.mjs video` records it |
+| "in verticale", "for the phone", "9:16" | `format=9:16` |
+| "quadrato", "square" | `format=1:1` |
+| "orizzontale", "16:9" | `format=16:9` |
+| "su carta millimetrata", "on graph paper with millimetre squares"; "il quaderno arancione", "the orange notebook" | `paletteLight=milli`, `paletteLight=arancio` (the names in style rule 8) |
+| "scuro ardesia", "slate dark" | `paletteDark=ardesia` |
+| "con il font <name>", "with the <name> font", "use this font: <file>" | `font=<name>` (as `fonts.mjs list` spells it), `font=<file>` |
+| "senza musica", "no music" | `music=false` |
+| "musica più bassa", "music lower" | one step down from the video's `musicLevel`: `high` (16 LU under the voice) to `normal` (20 LU), `normal` to `low` (24 LU); `low` for "much lower"; when it is already `low`, say so |
+| "musica più alta", "music louder" | one step up: `low` to `normal`, `normal` to `high` (16 LU), the default and the loudest level; when it is already `high`, say so |
+| "musica più ritmica", "more rhythm"; "più calma", "calmer"; "più discreta", "more discreet" | `musicStyle=pulse`, `musicStyle=warm`, `musicStyle=minimal` |
+| "senza effetti", "no sound effects" | `sfx=false` |
+| "senza audio di sottofondo", "no background sound" | `music=false sfx=false` |
+| "usa la mia musica in <folder>", "use my music in <folder>" | `audioDir=<folder>` |
+| "con la musica generata", "with the generated music" (when `config.json` names a folder) | `audioDir=none` |
+| "come gli altri video", "like my other videos" (a key changed for this video) | `key=default`: the key goes back to `config.json` |
 
 ## Runtime and models
 
@@ -137,6 +228,8 @@ node "<plugin>/scripts/runtime.mjs" install --data "<data>"
 node "<plugin>/scripts/runtime.mjs" models  --data "<data>" [--from <folder>]... [--copy]
 node "<plugin>/scripts/runtime.mjs" voices  --data "<data>" --lang it
 node "<plugin>/scripts/runtime.mjs" sample  --data "<data>" --voice im_nicola --lang it
+node "<plugin>/scripts/fonts.mjs" list [--all]
+node "<plugin>/scripts/fonts.mjs" check "<family or file>"
 ```
 
 - `doctor` checks Node 18+, Python 3.12 or 3.13, ffmpeg and ffprobe, free disk
@@ -158,6 +251,14 @@ node "<plugin>/scripts/runtime.mjs" sample  --data "<data>" --voice im_nicola --
   `<modelsDir>/models.json`.
 - `sample` writes `<data>/samples/<voice>-<lang>.wav` (about 5 s) and prints
   its path. Nothing is played or opened: give the user the path.
+- `fonts.mjs list` reads the font folders above (nothing is downloaded or
+  installed) and prints the families fit for the text font, best first:
+  sans-serif by the font's own classification, the full Latin alphabet
+  (with Central and Eastern European letters), a regular and a bold (a
+  semibold or a variable weight ranks higher), not monospaced, embedding
+  not restricted by the font's maker, not a symbol, script, display or code
+  face, not made for another writing system. `--all` also lists the others
+  with the reason. `check` tells what a value of `font` would use.
 - The voice step runs with `HF_HUB_OFFLINE=1` and `HF_HUB_DISABLE_TELEMETRY=1`:
   no network after setup.
 
@@ -170,10 +271,23 @@ silicon; Intel Macs have no onnxruntime wheel at the pinned version.
 
 - Saving a per-video wish in `config.json`: use an override, so the next video
   is not affected.
+- Copying `width` and `height` from `video.config.json` into the storyboard
+  after a `config.mjs video` run that gave another format: unless the user
+  asked for a new format, run `config.mjs video` again with the video's
+  `format=`.
 - Pointing `modelsDir` at a folder and then moving it: run `models` again.
+- Copying a font of the machine into a repository: the video folder's
+  `.gitignore` leaves `public/fonts/text/` out on purpose; its licence may
+  not allow sharing it.
 - Running `install` with admin rights or into a system Python: the venv is
   enough, and nothing needs admin.
 - Opening the sample WAV for the user: print the path, let them play it.
+- Running `voice.mjs` again to change the music: music and effects change at
+  the render only; for a new style or level, `config.mjs video` with the new
+  value and `render.mjs`.
+- Saving a music style in `config.json` because one video needed it: the
+  default `auto` lets each video take the style of its subject; one style
+  for every video is saved only when the user asks for it.
 
 ## Not yet proven
 
@@ -182,4 +296,11 @@ silicon; Intel Macs have no onnxruntime wheel at the pinned version.
   documentation, not run.
 - Downloads behind a proxy: Node's fetch does not read proxy variables.
 - `language` other than `it`.
+- `fonts.mjs` on macOS and Linux (run only on Windows), and font files given
+  by the user in `.woff` or `.woff2` (accepted without reading them).
 - The whole runtime on macOS and Linux (only Windows was run).
+- The music and effects levels were set by measure and heard on 20 s clips
+  only, not yet in a full video: the first videos should be listened to
+  with that in mind. A user folder was tried with test files only.
+- `musicStyle=auto`: Claude's choice of the style was not tried on a new
+  video yet.

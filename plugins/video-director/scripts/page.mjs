@@ -17,7 +17,9 @@ collapsed block.
 
 Before writing, every "facts.md:N" source is checked against facts.md (the
 line must exist and not be blank), and commands, values and numbers of 3 or
-more digits on the page are looked up in facts.md; misses are warnings.
+more digits on the page are looked up in facts.md; misses are warnings. A
+number of a section's text that facts.md has, but that no command, value
+or "source" of the section backs, is a warning too.
 
 The page is one file: inline CSS, no script, no CDN, no web font, no
 network; light and dark theme with the video palette; readable at phone
@@ -58,6 +60,7 @@ export const validatePage = (page) => {
       if (!str(c.text)) errors.push(`sections[${i}].commands[${k}].text is required`);
       if (!str(c.source)) errors.push(`sections[${i}].commands[${k}].source is required (e.g. facts.md:14)`);
     });
+    if (s.source !== undefined && !str(s.source)) errors.push(`sections[${i}].source must be text (e.g. facts.md:74-75), or left out`);
     if (s.values !== undefined && !Array.isArray(s.values)) errors.push(`sections[${i}].values must be a list`);
     (Array.isArray(s.values) ? s.values : []).forEach((v, k) => {
       if (!str(v.text)) errors.push(`sections[${i}].values[${k}].text is required`);
@@ -101,7 +104,7 @@ p{margin:0 0 12px}
 .summary{font-size:1.1rem;color:var(--ink)}
 .eyebrow{display:block;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-top:28px}
 .eyebrow+h3{margin-top:2px}
-video{display:block;width:100%;height:auto;border-radius:12px;background:#000;margin:20px 0 4px}
+video{display:block;width:auto;max-width:100%;max-height:80vh;height:auto;border-radius:12px;background:#000;margin:20px auto 4px}
 code{font-family:ui-monospace,"Cascadia Mono",Consolas,"JetBrains Mono",Menlo,monospace;font-size:.92em;background:var(--bg-alt);padding:.1em .35em;border-radius:5px}
 pre{margin:10px 0 2px;padding:14px 16px;background:var(--code-bg);color:var(--code-ink);border-radius:10px;overflow-x:auto;line-height:1.5}
 pre code{background:none;padding:0;color:inherit;font-size:.9rem;white-space:pre}
@@ -137,6 +140,8 @@ export const renderPage = (page, { chapterLabels = new Map() } = {}) => {
     if (s.chapter) out.push(`<span class="eyebrow">${esc(chapterLabels.get(s.chapter) ?? s.chapter)}</span>`);
     out.push(`<h3>${esc(s.heading)}</h3>`);
     for (const p of paragraphs(s.body)) out.push(`<p>${inline(p)}</p>`);
+    // A section of prose only (a lesson) has its own source line
+    if (typeof s.source === "string" && s.source.trim()) out.push(`<p class="src">${esc(L.source)}: ${esc(s.source)}</p>`);
     for (const c of s.commands ?? []) {
       out.push(`<pre><code>${esc(c.text)}</code></pre>`, `<p class="src">${esc(L.source)}: ${esc(c.source)}</p>`);
     }
@@ -188,6 +193,26 @@ export const checkAgainstFacts = (page, videoDir) => {
   const texts = [page.title, ...paragraphs(page.summary)];
   for (const s of page.sections ?? []) {
     texts.push(s.heading, ...paragraphs(s.body));
+    if (typeof s.source === "string") sources.push(s.source);
+    // A number the section states with no source of its own: facts.md has
+    // it, but the reader cannot see where from (seen in a review: 503 and
+    // 200 in a section body, with no values)
+    if (typeof s.source !== "string" || !s.source.trim()) {
+      // Backed: in a command or value of the section, or on a facts.md line
+      // one of them cites
+      const items = [...(s.commands ?? []), ...(Array.isArray(s.values) ? s.values : [])];
+      const cited = items.flatMap((x) => [...String(x.source ?? "").matchAll(/facts\.md:(\d+)(?:-(\d+))?/g)])
+        .flatMap((m) => lines.slice(Number(m[1]) - 1, Number(m[2] ?? m[1])));
+      const backed = flat([...items.map((x) => x.text), ...cited].join(" "));
+      for (const t of [s.heading, ...paragraphs(s.body)]) {
+        for (const m of String(t ?? "").matchAll(/\d(?:[\d.,]*\d)?/g)) {
+          const num = m[0];
+          if (num.replace(/\D/g, "").length >= 3 && all.includes(num.toLowerCase()) && !backed.includes(num.toLowerCase())) {
+            out.push(`number ${num} in section "${s.heading}" has no source there: add it to the section's values with its source, or give the section a source`);
+          }
+        }
+      }
+    }
     for (const c of s.commands ?? []) {
       sources.push(c.source);
       const shown = String(c.text ?? "").split(/\r?\n/).map((l) => l.replace(/^\$\s+/, "")).filter((l) => l.trim());

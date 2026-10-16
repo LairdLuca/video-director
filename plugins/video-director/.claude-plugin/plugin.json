@@ -1,7 +1,7 @@
 {
   "name": "video-director",
-  "version": "0.1.0",
-  "description": "Teaches Claude to turn facts into a short narrated explainer video (Remotion, local voice, captions, chapter bar) and a companion HTML page",
+  "version": "0.2.0",
+  "description": "Teaches Claude to turn facts into a short narrated explainer video (Remotion, local voice, captions, chapter bar, generated music; 16:9, 9:16 or 1:1) and a companion HTML page",
   "author": {
     "name": "LairdLuca",
     "url": "https://github.com/LairdLuca"

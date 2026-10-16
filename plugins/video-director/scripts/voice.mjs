@@ -10,6 +10,7 @@ const HELP = `
 Usage:
   node voice.mjs <videoDir> [--force] [--no-check] [--strict] [--data <dir>]
   node voice.mjs <videoDir> --try <sentenceId> "<marked text>" ["<marked text>" ...]
+  node voice.mjs <videoDir> --estimate
 
 Reads <videoDir>/script.json and <videoDir>/video.config.json (voice, speed,
 language, modelsDir, runtimeDir, flagDashes; written by "config.mjs video"),
@@ -27,6 +28,10 @@ entry (<videoDir>/lexicon.json), or rephrasing. Extra glossary terms go in
   --force      synthesize every sentence again
   --no-check   no Whisper: word times estimated from word length (faster)
   --strict     exit with code 3 when a term was not heard
+  --estimate   no synthesis, no models: the expected length and pace of
+               script.json from its spoken words and the speed (within a few
+               percent on the test videos), into qa/voice-estimate.json; for
+               the narration checkpoint, before the voice step
   --try <id>   synthesize the current sentence and each alternative into
                <videoDir>/qa/voice-try/ and print what Whisper heard;
                voiceover.json is not changed
@@ -38,6 +43,20 @@ Exit codes: 0 done, 1 runtime or synthesis error, 2 bad input, 3 (with --strict)
 `;
 
 const VOICE_DIR = path.join(PLUGIN_DIR, "voice");
+// Pace, in spoken words per second: 2.3-2.7 is the target. A little over it
+// is only noted: the test videos measured 2.72-2.85 with im_nicola at its
+// default speed, and synthesizing the whole narration again at a lower speed
+// cost minutes for a difference nobody asked for (the user: a video ready
+// sooner matters more than more correction rounds). Over 3.0 the speed of
+// the video goes down.
+export const PACE_TARGET = [2.3, 2.7];
+export const PACE_ACT = 3.0;
+const paceNote = (pace) =>
+  pace > PACE_ACT
+    ? `pace over ${PACE_ACT.toFixed(1)}: lower the speed of this video by 0.05 (see "Pace" in voice.md); cutting words does not lower it`
+    : pace > PACE_TARGET[1]
+      ? `pace a little over ${PACE_TARGET[1]} (up to ${PACE_ACT.toFixed(1)} is fine): note it in OUTCOME.md, no new synthesis`
+      : null;
 
 const loadVideoConfig = (videoDir, args) => {
   const file = path.join(videoDir, "video.config.json");
@@ -67,7 +86,7 @@ const printFixes = (videoDir, voiceover) => {
 };
 
 const main = async () => {
-  const args = parseArgs(process.argv.slice(2), { flags: ["force", "no-check", "strict"] });
+  const args = parseArgs(process.argv.slice(2), { flags: ["force", "no-check", "strict", "estimate"] });
   if (args.help) printHelp(HELP);
   const [dir, ...alternatives] = args._;
   if (!dir) die("missing <videoDir> (see --help)");
@@ -82,17 +101,33 @@ const main = async () => {
 
   const vpy = venvPython(cfg.runtimeDir);
   if (!existsSync(vpy)) die(`no voice runtime at ${cfg.runtimeDir}: run setup (node runtime.mjs install)`, 1);
+  const runPy = (pyArgs, opts = {}) => run(vpy, ["-I", "-B", "-X", "utf8", path.join(VOICE_DIR, "run.py"), ...pyArgs], { env: voiceEnv(), ...opts });
+  const textArgs = [];
+  if (cfg.flagDashes) textArgs.push("--flag-dashes");
+  if (existsSync(path.join(videoDir, "lexicon.json"))) textArgs.push("--lexicon-extra", path.join(videoDir, "lexicon.json"));
+  if (existsSync(path.join(videoDir, "glossary.txt"))) textArgs.push("--glossary-extra", path.join(videoDir, "glossary.txt"));
+
+  if (args.estimate) {
+    const out = path.join(videoDir, "qa", "voice-estimate.json");
+    const r = await runPy(["estimate", script, "--voice", cfg.voice, "--speed", String(cfg.speed), "--out", out, ...textArgs], { capture: true });
+    if (r.code !== 0) die(`estimate failed (exit ${r.code})${r.stderr ? `:
+${r.stderr.trim()}` : ""}`, r.code === 2 ? 2 : 1);
+    const e = readJson(out);
+    console.log(`estimate (no synthesis): ${e.sentences.length} sentences, ${e.spokenWords} spoken words (${e.shownWords} shown), voice ${e.voice} at speed ${e.speed}`);
+    console.log(`  about ${e.spokenWordsPerSecond} words/s spoken, speech about ${(e.speechMs / 1000).toFixed(0)} s, video about ${(e.videoMs / 1000).toFixed(0)} s`);
+    const note = paceNote(e.spokenWordsPerSecond);
+    if (note) console.log(`  ${note}`);
+    console.log(`wrote ${slash(out)}`);
+    return;
+  }
+
   const models = locateModels(cfg.modelsDir);
   if (models.missing.length) die(`models missing in ${cfg.modelsDir}: ${models.missing.join(", ")} (node runtime.mjs models)`, 1);
 
   const common = ["--model", models.kokoroModel, "--voices", models.kokoroVoices, "--voice", cfg.voice, "--speed", String(cfg.speed)];
   if (args["no-check"]) common.push("--no-whisper");
   else common.push("--whisper-model", models.whisperDir);
-  if (cfg.flagDashes) common.push("--flag-dashes");
-  if (existsSync(path.join(videoDir, "lexicon.json"))) common.push("--lexicon-extra", path.join(videoDir, "lexicon.json"));
-  if (existsSync(path.join(videoDir, "glossary.txt"))) common.push("--glossary-extra", path.join(videoDir, "glossary.txt"));
-
-  const runPy = (pyArgs) => run(vpy, ["-I", "-B", "-X", "utf8", path.join(VOICE_DIR, "run.py"), ...pyArgs], { env: voiceEnv() });
+  common.push(...textArgs);
   const t0 = Date.now();
 
   if (args.try) {
@@ -118,10 +153,9 @@ const main = async () => {
   console.log(`\nvoiceover.json: ${s.sentences} sentences, speech ${(s.speechMs / 1000).toFixed(1)} s, video about ${(s.videoMs / 1000).toFixed(1)} s`);
   // The target is for the spoken words; versions and codes say more words than they show
   const pace = s.spokenWordsPerSecond ?? s.wordsPerSecond;
-  console.log(`  voice ${voiceover.voice}, speed ${voiceover.speed}, ${pace} words/s spoken (target 2.3-2.7; ${s.wordsPerSecond} on the shown words), timing ${s.timing}`);
-  if (pace > 2.7) {
-    console.log(`  pace over 2.7: cutting words does not lower it; see "Pace" in voice.md (a lower speed for this video, or sentences with more pauses)`);
-  }
+  console.log(`  voice ${voiceover.voice}, speed ${voiceover.speed}, ${pace} words/s spoken (target ${PACE_TARGET.join("-")}; ${s.wordsPerSecond} on the shown words), timing ${s.timing}`);
+  const note = paceNote(pace);
+  if (note) console.log(`  ${note}`);
   console.log(`  English terms heard: ${s.termsHeard}/${s.terms}; marked parts heard: ${s.markedHeard ?? 0}/${s.marked ?? 0}`);
   // English terms marked to be said in the narration language are checked
   // as marked parts, not counted among the English terms

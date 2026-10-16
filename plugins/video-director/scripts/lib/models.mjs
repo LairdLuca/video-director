@@ -129,6 +129,9 @@ export const locateModels = (modelsDir) => {
       /* rebuilt below */
     }
   }
+  // Folders the manifest points to that are gone (seen in a test: models
+  // found with --from in a folder deleted later; doctor said "missing" only)
+  const goneFolders = [...new Set(Object.values(paths).filter(Boolean).map((p) => slash(path.dirname(p))))].filter((d) => !existsSync(d));
   let search = null;
   for (const f of MODEL_FILES) {
     const id = fileId(f);
@@ -148,6 +151,7 @@ export const locateModels = (modelsDir) => {
     .some((f) => slash(path.dirname(paths[fileId(f)])) !== whisperDir);
   return {
     missing,
+    goneFolders,
     split,
     kokoroModel: paths["kokoro/kokoro-v1.0.onnx"],
     kokoroVoices: paths["kokoro/voices-v1.0.bin"],

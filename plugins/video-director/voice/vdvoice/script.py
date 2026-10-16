@@ -15,7 +15,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from .markup import EN, IPA, MAIN, Segment, lexicon_key
+from .markup import EN, IPA, MAIN, Segment, lexicon_key, markup_in_code
 
 # Style rule: 0.4 s between sentences of a chapter, 0.8 s at a chapter change.
 # The template adds its own lead-in and tail; they are only used here for the
@@ -72,6 +72,13 @@ def load_script(path: str | Path) -> dict:
             problems.append(f"sentence {sid}: chapter {s.get('chapter')!r} is not in chapters")
         if not isinstance(s.get("text"), str) or not s["text"].strip():
             problems.append(f"sentence {sid}: empty text")
+            continue
+        for code in markup_in_code(s["text"]):
+            problems.append(
+                f"sentence {sid}: markup inside backticks (`{code}`) is not read: the voice would say it aloud, "
+                "letter by letter. Write the markup without the backticks ({kubectl rollout restart|ipa:...} "
+                "is drawn as code in the captions all the same), or escape a literal brace as \\{ \\}"
+            )
     if problems:
         raise ScriptError("script.json:\n  " + "\n  ".join(problems))
     return data
@@ -149,6 +156,14 @@ _ACRONYM = re.compile(r"^(?=[A-Z0-9]*[A-Z])[A-Z0-9]{2,6}$")
 
 def is_acronym(word: str) -> bool:
     return bool(_ACRONYM.match(word.strip(".,;:!?()")))
+
+
+def acronym_weight(word: str) -> float:
+    """Weight of a word in the pace: an acronym is half a word per letter (or
+    digit), at least one word ("SSO" 1.5, "HTTP" 2, "F5" 1); any other word 1."""
+    if not is_acronym(word):
+        return 1.0
+    return max(1.0, len(word.strip(".,;:!?()")) / 2)
 
 
 def marked_suggestions(seg: Segment, forced: bool) -> list[str]:

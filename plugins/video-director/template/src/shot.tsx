@@ -1,4 +1,5 @@
 import React, { createContext, useContext } from "react";
+import type { Layout } from "./lib/layout.mjs";
 import type { TimelineShot } from "./lib/timeline.mjs";
 import { type Theme, type Tokens, tokens } from "./theme";
 
@@ -6,13 +7,17 @@ type ShotContextValue = {
   shot: TimelineShot;
   theme: Theme;
   c: Tokens;
+  /** The frame's bands and margins in the video's format (lib/layout.mjs). */
+  L: Layout;
 };
 
 const ShotContext = createContext<ShotContextValue | null>(null);
 
-export const ShotProvider: React.FC<{ shot: TimelineShot; children: React.ReactNode }> = ({ shot, children }) => (
-  <ShotContext.Provider value={{ shot, theme: shot.theme, c: tokens(shot.theme) }}>{children}</ShotContext.Provider>
-);
+export const ShotProvider: React.FC<{ shot: TimelineShot; layout: Layout; children: React.ReactNode }> = ({
+  shot,
+  layout,
+  children,
+}) => <ShotContext.Provider value={{ shot, theme: shot.theme, c: tokens(shot.theme), L: layout }}>{children}</ShotContext.Provider>;
 
 export const useShot = (): ShotContextValue => {
   const value = useContext(ShotContext);
@@ -27,7 +32,7 @@ export const useShot = (): ShotContextValue => {
 export const useBeat = () => {
   const { shot } = useShot();
   return (name: string | undefined, fallback?: number): number => {
-    if (name !== undefined && name in shot.beats) return shot.beats[name];
+    if (name !== undefined && Object.prototype.hasOwnProperty.call(shot.beats, name)) return shot.beats[name];
     if (fallback !== undefined) return fallback;
     throw new Error(`shot ${shot.id}: beat "${name}" is not defined in storyboard.json`);
   };

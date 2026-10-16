@@ -4,7 +4,7 @@ import { Brackets } from "../components/primitives";
 import { StageFrame } from "../components/Stage";
 import { arrive, ease, follow, lerp, tween } from "../motion";
 import { useBeat, useShot, useShotStart } from "../shot";
-import { TYPE } from "../theme";
+import { alpha, TYPE } from "../theme";
 
 export type ScreenshotRegion = {
   box: [number, number, number, number];
@@ -19,28 +19,28 @@ export type ScreenshotProps = {
   pan?: Array<{ to: [number, number, number]; at: string }>;
 };
 
-const FRAME_W = 1500;
-const FRAME_H = 690;
-
 /**
  * A still of a UI or a page (catalogue 2.9, not yet proven). `src` is a file
  * in public/, `size` its pixel size; region boxes are in image pixels and
  * must be measured, never guessed. The camera pans between `pan` targets
- * (image x, y, scale up to 1.5).
+ * (image x, y, scale up to 1.5). The image fits a 1500 x 690 box on a 16:9
+ * frame, the stage less its margins on the others.
  */
 export const Screenshot: React.FC = () => {
-  const { shot, c } = useShot();
+  const { shot, c, L } = useShot();
   const beat = useBeat();
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const shotStart = useShotStart();
   const props = shot.props as ScreenshotProps;
   const [iw, ih] = props.size ?? [1600, 900];
-  const fit = Math.min(FRAME_W / iw, FRAME_H / ih);
+  const boxW = L.narrow ? L.width - 2 * L.margin : 1500;
+  const boxH = L.stageH - 30;
+  const fit = Math.min(boxW / iw, boxH / ih);
   const w = iw * fit;
   const h = ih * fit;
-  const left = (1920 - w) / 2;
-  const top = 140 + (720 - h) / 2;
+  const left = (L.width - w) / 2;
+  const top = L.stageTop + (L.stageH - h) / 2;
 
   // Pan: piecewise eased moves between targets, each arriving on its anchor.
   let fx = iw / 2;
@@ -76,7 +76,7 @@ export const Screenshot: React.FC = () => {
           overflow: "hidden",
           border: `2px solid ${c.hairline}`,
           backgroundColor: c.card,
-          boxShadow: "0 24px 60px rgba(15,23,42,0.14)",
+          boxShadow: `0 24px 60px ${alpha(c.shadow, 0.14)}`,
           opacity: appear,
         }}
       >
@@ -91,7 +91,7 @@ export const Screenshot: React.FC = () => {
               return (
                 <div
                   key={i}
-                  style={{ position: "absolute", left: x, top: y, width: rw, height: rh, borderRadius: 8, backgroundColor: "rgba(37,99,235,0.18)", opacity: o }}
+                  style={{ position: "absolute", left: x, top: y, width: rw, height: rh, borderRadius: 8, backgroundColor: alpha(c.accent, 0.18), opacity: o }}
                 />
               );
             }

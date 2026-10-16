@@ -10,6 +10,8 @@
 // Contract C (storyboard.json): a shot covers whole sentences, its beats are
 // anchored to spoken words and resolve to frames relative to the shot.
 
+import { layoutFor } from "./layout.mjs";
+
 export const LEAD_IN_MS = 250;
 export const TAIL_MS = 600;
 export const PAUSE_IN_CHAPTER_MS = 400;
@@ -19,7 +21,14 @@ export const TRANSITIONS = {
   push: 13,
   wipe: 20,
   "fade-dark": 15,
+  crossfade: 15,
 };
+
+// The transitions a storyboard may ask for. A push between a light and a dark
+// shot is drawn as a crossfade (style rule 29): the push hands over through
+// two almost transparent shots, and between two stage colours that read as a
+// flash, so the timeline turns it into a crossfade by itself.
+export const ASKED_TRANSITIONS = ["push", "wipe", "fade-dark"];
 
 export const SCENES = [
   "HookStatus",
@@ -34,9 +43,14 @@ export const SCENES = [
   "Custom",
 ];
 
-const CAPTION_MAX_CHARS = 42;
 const CAPTION_HOLD_MS = 300;
 const TRAILING_PUNCT = /[,;:.!?…]+$/;
+// A code word keeps a final ":", "?", "!" or "…" ("env:", "$?"): only ".",
+// "," and ";" after it are the sentence's. Seen in a review: "$?" was shown
+// as "$", and the phrase was cut after it; the colon stays with the code by
+// the user's choice (a YAML key is written "env:").
+const CODE_TRAILING_PUNCT = /[,;.]+$/;
+const trailingOf = (w) => (w.code ? CODE_TRAILING_PUNCT : TRAILING_PUNCT);
 const EDGE_PUNCT = /^[("'«“‘\[]+|[)"'»”’\],;:.!?…]+$/g;
 
 /** Lowercase and strip quotes and punctuation at the edges of a word. */
@@ -64,17 +78,18 @@ const functionWords = (language) => {
 
 /**
  * Split one sentence's words into caption phrases: at punctuation first, then
- * at the space nearest the middle while a phrase is longer than 42 characters,
- * never right after a short function word of the language when another space
- * is available (the phrase would end on "sul" or "the").
+ * at the space nearest the middle while a phrase is longer than `maxChars`
+ * (42 on a wide frame, 30 on a 1080 px wide one), never right after a short
+ * function word of the language when another space is available (the phrase
+ * would end on "sul" or "the").
  */
-export const splitPhrases = (words, language) => {
+export const splitPhrases = (words, language, maxChars = 42) => {
   const weak = functionWords(language);
   const groups = [];
   let current = [];
   for (const w of words) {
     current.push(w);
-    if (TRAILING_PUNCT.test(w.text)) {
+    if (trailingOf(w).test(w.text)) {
       groups.push(current);
       current = [];
     }
@@ -83,7 +98,7 @@ export const splitPhrases = (words, language) => {
 
   const textOf = (ws) => ws.map((w) => w.text).join(" ");
   const balance = (ws) => {
-    if (ws.length < 2 || textOf(ws).length <= CAPTION_MAX_CHARS) return [ws];
+    if (ws.length < 2 || textOf(ws).length <= maxChars) return [ws];
     const total = textOf(ws).length;
     let best = 1;
     let bestCost = Infinity;
@@ -147,10 +162,12 @@ export const buildTimeline = (storyboard, voiceover) => {
         ? s.pauseAfterMs
         : defaultPause
       : 0;
+    // `code`: a command, file name or identifier, drawn in mono in the captions
     const words = (Array.isArray(s.words) ? s.words : []).map((w) => ({
       text: String(w.text ?? ""),
       startMs: clock + Number(w.startMs || 0),
       endMs: clock + Number(w.endMs || 0),
+      code: w.code === true,
     }));
     if (!words.length) errors.push(`sentence ${s.id}: no words (needed for anchors and captions)`);
     sentences.push({
@@ -186,9 +203,9 @@ export const buildTimeline = (storyboard, voiceover) => {
     }
     if (!SCENES.includes(shot.scene)) errors.push(`shot ${id}: unknown scene "${shot.scene}"`);
     if (shot.scene === "Custom" && !shot.component) errors.push(`shot ${id}: scene Custom needs "component"`);
-    const transitionIn = index === 0 ? null : shot.transitionIn ?? "push";
-    if (transitionIn && !(transitionIn in TRANSITIONS)) {
-      errors.push(`shot ${id}: unknown transitionIn "${transitionIn}" (push, wipe, fade-dark)`);
+    const transitionAsked = index === 0 ? null : shot.transitionIn ?? "push";
+    if (transitionAsked && !ASKED_TRANSITIONS.includes(transitionAsked)) {
+      errors.push(`shot ${id}: unknown transitionIn "${transitionAsked}" (push, wipe, fade-dark)`);
     }
     const theme = shot.theme === "dark" ? "dark" : "light";
     if (shot.theme && shot.theme !== "light" && shot.theme !== "dark") {
@@ -202,8 +219,8 @@ export const buildTimeline = (storyboard, voiceover) => {
       scene: shot.scene,
       component: shot.component ?? null,
       theme,
-      transitionIn,
-      transitionFrames: transitionIn ? TRANSITIONS[transitionIn] ?? TRANSITIONS.push : 0,
+      transitionAsked,
+      transitionIn: transitionAsked,
       chapterBar: shot.chapterBar !== false,
       camera: { from: shot.camera?.from ?? 1, to: shot.camera?.to ?? 1.04 },
       props: shot.props ?? {},
@@ -221,6 +238,11 @@ export const buildTimeline = (storyboard, voiceover) => {
   for (const s of sentences) {
     if (!used.has(s.id)) errors.push(`sentence ${s.id} is not in any shot`);
   }
+  // Light to dark or back: never the push (style rule 29).
+  shots.forEach((shot, i) => {
+    if (i > 0 && shot.transitionIn === "push" && shots[i - 1].theme !== shot.theme) shot.transitionIn = "crossfade";
+    shot.transitionFrames = shot.transitionIn ? TRANSITIONS[shot.transitionIn] ?? TRANSITIONS.push : 0;
+  });
   // Shots must follow the narration order.
   for (let i = 1; i < shots.length; i++) {
     const a = shots[i - 1].lastSentence;
@@ -264,7 +286,7 @@ export const buildTimeline = (storyboard, voiceover) => {
         errors.push(`shot ${shot.id}: a beat has no name`);
         continue;
       }
-      if (name in shot.beats) errors.push(`shot ${shot.id}: beat "${name}" defined twice`);
+      if (Object.hasOwn(shot.beats, name)) errors.push(`shot ${shot.id}: beat "${name}" defined twice`);
       const anchor = String(beat.word ?? "").trim();
       if (!anchor) {
         errors.push(`shot ${shot.id}: beat "${name}" has no anchor word`);
@@ -286,7 +308,7 @@ export const buildTimeline = (storyboard, voiceover) => {
       for (const s of pool) {
         for (let w = 0; w + needle.length <= s.words.length && !hit; w++) {
           const match = needle.every((n, k) => normalizeWord(s.words[w + k].text) === n);
-          if (match && ++seen === occurrence) hit = { sentence: s, word: s.words[w] };
+          if (match && ++seen === occurrence) hit = { sentence: s, word: s.words[w], last: s.words[w + needle.length - 1] };
         }
         if (hit) break;
       }
@@ -309,6 +331,7 @@ export const buildTimeline = (storyboard, voiceover) => {
         frame,
         globalFrame: frame + shot.from,
         wordStartMs: Math.round(hit.word.startMs),
+        wordEndMs: Math.round(Math.max(hit.last.endMs ?? hit.last.startMs, hit.word.startMs)),
         errorMs: Math.round(errorMs),
         timing: hit.sentence.timing,
       });
@@ -343,15 +366,60 @@ export const buildTimeline = (storyboard, voiceover) => {
     if (c.label.length > 14) warnings.push(`chapter label "${c.label}" is longer than 14 characters`);
   }
 
-  // Caption phrases on the audio clock.
+  // Parts (optional): the chapters grouped for the chapter bar (style rule 6).
+  // With parts the bar has two rows, the chapters of the current part above
+  // and the parts below, so every chapter stays visible on any frame width.
+  const parts = [];
+  if (storyboard?.parts !== undefined && !Array.isArray(storyboard.parts)) errors.push("parts must be a list of { id, label, chapters }");
+  const partsIn = Array.isArray(storyboard?.parts) ? storyboard.parts : [];
+  if (partsIn.length) {
+    const owner = new Map();
+    partsIn.forEach((p, k) => {
+      const id = String(p?.id ?? `part${k + 1}`);
+      const ids = Array.isArray(p?.chapters) ? p.chapters.map(String) : [];
+      if (!ids.length) errors.push(`part ${id}: no chapters`);
+      for (const cid of ids) {
+        if (owner.has(cid)) errors.push(`part ${id}: chapter ${cid} is already in part ${owner.get(cid)}`);
+        else owner.set(cid, k);
+      }
+      parts.push({ id, label: String(p?.label ?? id).toUpperCase(), from: 0, to: 0, chapters: [] });
+      for (const cid of ids) {
+        if (!chapters.some((c) => String(c.id) === cid)) errors.push(`part ${id}: chapter ${cid} is not a chapter of the film`);
+      }
+    });
+    chapters.forEach((c, i) => {
+      const k = owner.get(String(c.id));
+      if (k === undefined) {
+        errors.push(`chapter ${c.id} is in no part (with parts, every chapter needs one)`);
+        return;
+      }
+      c.part = k;
+      const prev = chapters[i - 1];
+      if (prev?.part !== undefined && k < prev.part) errors.push(`part ${parts[k].id}: its chapters are not together, or the parts are not in film order`);
+      parts[k].chapters.push(i);
+    });
+    for (const p of parts) {
+      if (!p.chapters.length) continue;
+      p.from = Math.min(...p.chapters.map((i) => chapters[i].from));
+      p.to = Math.max(...p.chapters.map((i) => chapters[i].to));
+    }
+    for (const p of parts) {
+      if (p.label.length > 14) warnings.push(`part label "${p.label}" is longer than 14 characters`);
+    }
+  }
+
+  // Caption phrases on the audio clock, with each word and its kind.
+  const frame = layoutFor(width, height, parts.length ? 2 : 1);
   const phrases = [];
   for (const s of sentences) {
-    for (const group of splitPhrases(s.words, voiceover?.language)) {
+    for (const group of splitPhrases(s.words, voiceover?.language, frame.captionChars)) {
+      const words = group.map((w, k) => ({
+        text: k === group.length - 1 ? w.text.replace(trailingOf(w), "") : w.text,
+        code: w.code,
+      }));
       phrases.push({
-        text: group
-          .map((w) => w.text)
-          .join(" ")
-          .replace(TRAILING_PUNCT, ""),
+        text: words.map((w) => w.text).join(" "),
+        words,
         fromMs: group[0].startMs,
         endMs: group[group.length - 1].endMs,
       });
@@ -376,6 +444,7 @@ export const buildTimeline = (storyboard, voiceover) => {
     sentences,
     shots,
     chapters,
+    parts,
     phrases,
     errors,
     warnings,
@@ -405,7 +474,10 @@ export const PUSH_HANDOVER = Math.acos(1 - 2 * 0.425) / Math.PI;
  * incoming value over the transition frames. With `handover` (the theme
  * colours) a push switches at its hand-over instead, when both shots are
  * almost transparent: a linear mix showed the film background as a mid-grey
- * frame between a light and a dark shot (a test video).
+ * frame between a light and a dark shot (a test video). A crossfade switches
+ * at its middle, where the eased (in-out sine) stage is half way: a linear
+ * mix put grey captions and bar labels on a grey stage for about 0.2 s
+ * (contrast down to 1.2, seen in a review); switched there it stays above 3.
  */
 export const mixAt = (timeline, frame, valueOf, { handover = false } = {}) => {
   const shots = timeline.shots;
@@ -416,7 +488,8 @@ export const mixAt = (timeline, frame, valueOf, { handover = false } = {}) => {
     const end = s.from + s.transitionFrames;
     if (frame >= start && frame < end) {
       const p = (frame - start) / Math.max(1, s.transitionFrames);
-      const q = handover && s.transitionIn === "push" ? (p >= PUSH_HANDOVER ? 1 : 0) : p;
+      const at = s.transitionIn === "push" ? PUSH_HANDOVER : s.transitionIn === "crossfade" ? 0.5 : null;
+      const q = handover && at !== null ? (p >= at ? 1 : 0) : p;
       return valueOf(shots[i - 1]) * (1 - q) + valueOf(s) * q;
     }
   }

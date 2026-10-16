@@ -3,8 +3,9 @@ import { useCurrentFrame, useVideoConfig } from "remotion";
 import { Mark, Slab, type SlabProps } from "../components/primitives";
 import { StageFrame } from "../components/Stage";
 import { arrive, lerp, tween } from "../motion";
+import { HERO, statusCard } from "../lib/layout.mjs";
 import { useBeat, useShot } from "../shot";
-import { BAND, mono, MONO_ADVANCE, TYPE } from "../theme";
+import { alpha, mono, MONO_ADVANCE, TYPE } from "../theme";
 
 // ok: true is a tick, false a cross; without ok the row has no mark (a state
 // or an option, not a check). A missing ok drew a red cross in a test video,
@@ -23,25 +24,32 @@ export type StatusCardProps = {
  * The verification (catalogue 2.6): rows arrive on their anchors, each mark
  * strokes in 0.1 s later. With 1-3 rows the card and its type are larger, so
  * a short card still fills the stage (style rule 1, one subject, large).
+ * On a wide frame the slab sits beside the card; on a 1080 px wide frame
+ * under it ("left": above), and on the square frame the card keeps the
+ * compact rows so the two fit the short stage.
  */
 export const StatusCard: React.FC = () => {
-  const { shot, c } = useShot();
+  const { shot, c, L } = useShot();
   const beat = useBeat();
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const props = shot.props as StatusCardProps;
   const rows = props.rows ?? [];
-  const few = rows.length <= 3;
+  // Card and slab sizes, shared with the lint (lib/layout.mjs).
+  const { stacked, few, rowH, cardH, slabFont, slabH, space, blockH } = statusCard(L, rows.length, props.slab);
   const slabSide = props.slab?.side === "left" ? "left" : "right";
-  const cardWidth = props.slab ? 940 : few ? 1400 : 1200;
-  const cardLeft = props.slab ? (slabSide === "right" ? 140 : 1920 - 140 - 940) : (1920 - cardWidth) / 2;
-  const rowH = few ? 140 : 96;
+  const cardWidth = L.narrow ? L.width - 2 * L.margin : props.slab ? 940 : few ? 1400 : 1200;
+  const cardLeft = L.narrow || !props.slab ? (L.width - cardWidth) / 2 : slabSide === "right" ? 140 : L.width - 140 - 940;
+  // The square stage is short (650 px under a two-row chapter bar): card and
+  // slab stacked there use 80 px rows and a value of 120 px at most.
   const titleSize = few ? 52 : 38;
   const markSize = few ? 72 : 56;
   const padX = 48;
   const inner = cardWidth - 2 * padX;
-  const cardH = 120 + rows.length * rowH + 40;
-  const cardTop = BAND.stageTop + Math.max(0, (BAND.stageBottom - BAND.stageTop - cardH) / 2);
+  // Stacked: the card and the slab are one block centred in the stage.
+  const blockTop = L.stageTop + Math.max(0, (L.stageH - blockH) / 2);
+  const cardTop = stacked && slabSide === "left" ? blockTop + slabH + space : blockTop;
+  const slabTop = stacked ? (slabSide === "left" ? blockTop : blockTop + cardH + space) : L.stageTop;
   // The label column fits the longest label (30-45% of the card); labels
   // too long for 45% get smaller type. A fixed 30% let "RESTARTS" touch its
   // value on a card beside a slab.
@@ -73,7 +81,7 @@ export const StatusCard: React.FC = () => {
           padding: `36px ${padX}px`,
           boxSizing: "border-box",
           opacity: appear,
-          boxShadow: "0 18px 50px rgba(15,23,42,0.08)",
+          boxShadow: `0 18px 50px ${alpha(c.shadow, 0.08)}`,
         }}
       >
         <div style={{ fontFamily: mono, fontSize: titleSize, fontWeight: 700, marginBottom: 24 }}>{props.title}</div>
@@ -112,16 +120,21 @@ export const StatusCard: React.FC = () => {
         <div
           style={{
             position: "absolute",
-            top: BAND.stageTop,
-            bottom: 1080 - BAND.stageBottom,
-            left: slabSide === "right" ? 1120 : 140,
-            width: 660,
+            top: slabTop,
+            height: stacked ? slabH : L.stageH,
+            left: stacked ? L.textMargin : slabSide === "right" ? 1120 : 140,
+            width: stacked ? L.width - 2 * L.textMargin : 660,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Slab {...props.slab} at={beat(props.slab.at ?? "slab")} maxWidth={660} />
+          <Slab
+            {...props.slab}
+            at={beat(props.slab.at ?? "slab")}
+            maxWidth={stacked ? L.width - 2 * L.textMargin : 660}
+            maxFont={stacked ? slabFont : HERO}
+          />
         </div>
       ) : null}
     </StageFrame>

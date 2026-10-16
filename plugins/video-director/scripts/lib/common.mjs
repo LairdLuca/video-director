@@ -7,6 +7,7 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { formatOf } from "../../template/src/lib/layout.mjs";
 
 export const SCRIPTS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const PLUGIN_DIR = path.resolve(SCRIPTS_DIR, "..");
@@ -80,16 +81,39 @@ export const BROWSER_DOWNLOAD_NOTE =
   "downloading Remotion's headless browser (about 280 MB, version pinned by Remotion) into node_modules/.remotion; once per video";
 
 /**
- * The template reads captions from storyboard.json, the user's choice lives in
- * video.config.json. A message when they differ, else null.
+ * The template reads captions, the frame size and the palettes from
+ * storyboard.json; the user's choices live in video.config.json. One message
+ * per key that differs (empty when they agree, or without video.config.json).
+ * A missing palette key in the storyboard means the default palette.
  */
-export const captionsMismatch = (videoDir, storyboard) => {
+export const configMismatches = (videoDir, storyboard, defaults = {}) => {
   const file = path.join(videoDir, "video.config.json");
-  if (!existsSync(file)) return null;
-  const want = readJson(file).captions;
-  const have = storyboard.captions !== false;
-  if (typeof want !== "boolean" || have === want) return null;
-  return `storyboard.json captions is ${have}, video.config.json says ${want}: copy it into the storyboard`;
+  if (!existsSync(file)) return [];
+  const cfg = readJson(file);
+  const out = [];
+  const check = (key, have, want) => {
+    if (want === undefined || want === null || have === want) return;
+    out.push(`storyboard.json ${key} is ${JSON.stringify(have)}, video.config.json says ${JSON.stringify(want)}: copy it into the storyboard`);
+  };
+  check("captions", storyboard.captions !== false, typeof cfg.captions === "boolean" ? cfg.captions : undefined);
+  // The frame size: copying it into the storyboard would change the video's
+  // format, and every layout with it. Seen in a review: a config run again
+  // without format= said 16:9 for a 9:16 video, and this message, then
+  // "copy it into the storyboard", led the wrong way.
+  const w = Number(storyboard.width) || 1920;
+  const h = Number(storyboard.height) || 1080;
+  if ((cfg.width && cfg.width !== w) || (cfg.height && cfg.height !== h)) {
+    const shape = (a, b) => `${a}x${b}${formatOf(a, b) ? ` (${formatOf(a, b)})` : ""}`;
+    const fmt = formatOf(w, h);
+    out.push(
+      `storyboard.json is ${shape(w, h)}, video.config.json says ${shape(cfg.width ?? w, cfg.height ?? h)}: ` +
+        `if the video keeps its format, run config.mjs video again with format=${fmt ?? "<its format>"}; ` +
+        `only if the user asked for a new format, change the storyboard's width and height and lint it again (every layout changes)`,
+    );
+  }
+  check("paletteLight", storyboard.paletteLight ?? defaults.paletteLight, cfg.paletteLight);
+  check("paletteDark", storyboard.paletteDark ?? defaults.paletteDark, cfg.paletteDark);
+  return out;
 };
 
 /**
@@ -101,11 +125,21 @@ export const captionsMismatch = (videoDir, storyboard) => {
 export const loadVideo = async (videoDir) => {
   const storyboard = readJson(path.join(videoDir, "storyboard.json"));
   const voiceover = readJson(path.join(videoDir, "voiceover.json"));
-  const lib = await import(pathToFileURL(path.join(videoDir, "src", "lib", "timeline.mjs")).href);
+  const own = (name) => import(pathToFileURL(path.join(videoDir, "src", "lib", name)).href);
+  const lib = await own("timeline.mjs");
   const timeline = lib.buildTimeline(storyboard, voiceover);
   if (storyboard.placeholder) timeline.errors.unshift("storyboard.json is still the template placeholder: write the video's storyboard");
   if (voiceover.engine === "placeholder") timeline.errors.unshift("voiceover.json is still the template placeholder: run voice.mjs");
-  return { storyboard, voiceover, timeline, lib };
+  // The video's own layout and palettes (the ones its template renders with);
+  // a project made with an older template has neither.
+  let layoutLib = await own("layout.mjs").catch(() => null);
+  const palettesLib = await own("palettes.mjs").catch(() => null);
+  if (!layoutLib || !palettesLib) timeline.errors.unshift("this video project was made with an older template (no src/lib/layout.mjs or palettes.mjs): make it again with new-video");
+  else if (!["statusCard", "hookStackedFlow", "strikeAfterSize", "captionCodeSize", "looksLikeCode"].every((k) => typeof layoutLib[k] === "function")) {
+    timeline.errors.unshift("this video project was made with an older template (its src/lib/layout.mjs lacks the shared layout checks): make it again with new-video, or copy the template's src/lib into it");
+    layoutLib = null;
+  }
+  return { storyboard, voiceover, timeline, lib, layoutLib, palettesLib };
 };
 
 /** Node CLI of npm, run with this Node (no .cmd shim, no shell). */

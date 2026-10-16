@@ -1,7 +1,10 @@
 // Types for timeline.mjs (the file itself is plain JavaScript, shared with the Node scripts).
 
 export type Theme = "light" | "dark";
-export type TransitionName = "push" | "wipe" | "fade-dark";
+/** The transitions drawn; "crossfade" is the push between a light and a dark shot, which the timeline picks by itself. */
+export type TransitionName = "push" | "wipe" | "fade-dark" | "crossfade";
+/** What a storyboard may ask for (ASKED_TRANSITIONS). */
+export type AskedTransition = "push" | "wipe" | "fade-dark";
 export type SceneName =
   | "HookStatus"
   | "Terminal"
@@ -14,7 +17,8 @@ export type SceneName =
   | "Screenshot"
   | "Custom";
 
-export type Word = { text: string; startMs: number; endMs: number };
+/** `code`: a command, file name or identifier (captions draw it in mono). */
+export type Word = { text: string; startMs: number; endMs: number; code?: boolean };
 
 export type VoiceSentence = {
   id: string;
@@ -45,7 +49,7 @@ export type ShotSpec = {
   component?: string;
   theme?: Theme;
   sentences: string[];
-  transitionIn?: TransitionName;
+  transitionIn?: AskedTransition;
   chapterBar?: boolean;
   camera?: { from?: number; to?: number };
   props?: Record<string, unknown>;
@@ -59,7 +63,11 @@ export type Storyboard = {
   width?: number;
   height?: number;
   captions?: boolean;
+  paletteLight?: string;
+  paletteDark?: string;
   chapters?: Array<{ id: string; label: string }>;
+  parts?: Array<{ id: string; label: string; chapters: string[] }>;
+  targetSeconds?: [number, number];
   shots: ShotSpec[];
 };
 
@@ -85,6 +93,8 @@ export type BeatInfo = {
   frame: number;
   globalFrame: number;
   wordStartMs: number;
+  /** End of the anchor's last word, in ms on the film's clock. */
+  wordEndMs: number;
   errorMs: number;
   timing: string;
 };
@@ -96,6 +106,8 @@ export type TimelineShot = {
   scene: SceneName;
   component: string | null;
   theme: Theme;
+  /** The transition the storyboard asked for; `transitionIn` is the one drawn. */
+  transitionAsked: TransitionName | null;
   transitionIn: TransitionName | null;
   transitionFrames: number;
   chapterBar: boolean;
@@ -111,8 +123,18 @@ export type TimelineShot = {
   beatInfo: BeatInfo[];
 };
 
-export type Chapter = { id: string | null; label: string; from: number; to: number };
-export type Phrase = { text: string; fromMs: number; toMs: number; fromFrame: number; toFrame: number };
+/** `part`: index in Timeline.parts, when the storyboard groups chapters into parts. */
+export type Chapter = { id: string | null; label: string; from: number; to: number; part?: number };
+/** `chapters`: indexes in Timeline.chapters. */
+export type Part = { id: string; label: string; from: number; to: number; chapters: number[] };
+export type Phrase = {
+  text: string;
+  words: Array<{ text: string; code: boolean }>;
+  fromMs: number;
+  toMs: number;
+  fromFrame: number;
+  toFrame: number;
+};
 
 export type Timeline = {
   fps: number;
@@ -124,6 +146,7 @@ export type Timeline = {
   sentences: TimelineSentence[];
   shots: TimelineShot[];
   chapters: Chapter[];
+  parts: Part[];
   phrases: Phrase[];
   errors: string[];
   warnings: string[];
@@ -134,9 +157,10 @@ export declare const TAIL_MS: number;
 export declare const PAUSE_IN_CHAPTER_MS: number;
 export declare const PAUSE_AT_CHAPTER_MS: number;
 export declare const TRANSITIONS: Record<TransitionName, number>;
+export declare const ASKED_TRANSITIONS: AskedTransition[];
 export declare const SCENES: SceneName[];
 export declare function normalizeWord(text: string): string;
-export declare function splitPhrases<W extends { text: string }>(words: W[], language?: string): W[][];
+export declare function splitPhrases<W extends { text: string }>(words: W[], language?: string, maxChars?: number): W[][];
 export declare function cameraScale(
   frame: number,
   durationInFrames: number,

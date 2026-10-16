@@ -10,7 +10,10 @@ Usage: node new-video.mjs <videosDir> <slug> [--no-install]
 Creates <videosDir>/<slug>/ as a copy of the plugin's Remotion template,
 installs its pinned dependencies with "npm ci --ignore-scripts" (lockfile,
 exact versions, no install scripts run) and copies the bundled fonts
-(Inter, JetBrains Mono, SIL OFL 1.1) into public/fonts/.
+(Inter, JetBrains Mono, SIL OFL 1.1) into public/fonts/. A text font chosen
+at setup or for one video ("font") is copied later, by the lint and the QA
+scripts, into public/fonts/text/ (ignored by git: its licence may not allow
+sharing it).
 
   <videosDir>    folder that holds the video projects (created if missing)
   <slug>         lowercase letters, digits and dashes, e.g. checkout-crashloop
@@ -70,7 +73,11 @@ const main = async () => {
       filter: (src) => !SKIP.has(path.basename(src)) || path.dirname(src) !== TEMPLATE_DIR,
     });
     for (const sub of ["public/voice", "qa", "out"]) mkdirSync(path.join(dir, sub), { recursive: true });
-    writeFileSync(path.join(dir, ".gitignore"), "node_modules/\nout/\nqa/bundle/\nqa/voice-try/\n", "utf8");
+    // public/fonts/text/ holds a font copied from the machine or given by the
+    // user (config key "font"): its licence may not allow sharing it. audio/
+    // holds the music and effects of a render kept with --keep-raw, maybe
+    // made from the user's own files (config key "audioDir").
+    writeFileSync(path.join(dir, ".gitignore"), "node_modules/\nout/\nqa/bundle/\nqa/voice-try/\npublic/fonts/text/\naudio/\n", "utf8");
     console.log(`created ${slash(dir)}`);
   } else {
     console.log(`${slash(dir)} already exists: finishing the install only`);
