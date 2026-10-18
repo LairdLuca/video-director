@@ -1,6 +1,11 @@
 # video-director-explainer
 
-**Version 1.0.0**, see the [changelog](CHANGELOG.md).
+**Version 1.0.0**, see the [changelog](CHANGELOG.md). English | [Italiano](README.it.md)
+
+[![A short video about the plugin, made with the plugin itself](media/video-director-explainer-en.jpg)](media/video-director-explainer-en.mp4)
+
+*Click the image to watch the video (88 s, with sound). It was made by the
+plugin itself, from this README and the plugin's docs.*
 
 A Claude Code plugin that teaches Claude to make a **short narrated explainer
 video** from facts: a DevOps how-to ("how we fixed X"), a report of work done,
@@ -231,6 +236,7 @@ plugins/video-director-explainer/
   scripts/                           Node scripts: new video, config, fonts, voice, lint, stills, freeze, audio, render, page, open
   voice/                             the Python voice module (Kokoro + Whisper)
   examples/acme-shop-crashloop/      a worked example with fictional facts
+media/                               the videos at the top of README.md and README.it.md
 ```
 
 ## License
