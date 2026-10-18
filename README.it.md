@@ -1,6 +1,6 @@
 # video-director-explainer
 
-**Versione 1.0.0**, vedi il [changelog](CHANGELOG.md) (in inglese). [English](README.md) | Italiano
+**Versione 1.0.1**, vedi il [changelog](CHANGELOG.md) (in inglese). [English](README.md) | Italiano
 
 [![Un breve video sul plugin, fatto con il plugin stesso](media/video-director-explainer-it.jpg)](media/video-director-explainer-it.mp4)
 

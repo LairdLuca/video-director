@@ -1,6 +1,6 @@
 # video-director-explainer plugin
 
-**Version 1.0.0.** Teaches Claude to turn facts into a 60-90 second narrated
+**Version 1.0.1.** Teaches Claude to turn facts into a 60-90 second narrated
 explainer video (Remotion, a local Kokoro voice, captions, a chapter bar,
 generated music and sound effects; 16:9, 9:16 or 1:1) and a companion HTML
 page. The repository [README](../../README.md) is the

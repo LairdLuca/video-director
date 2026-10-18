@@ -15,7 +15,7 @@
       },
       "source": "./plugins/video-director-explainer",
       "category": "productivity",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "keywords": ["video", "remotion", "explainer", "narration", "devops"],
       "homepage": "https://github.com/LairdLuca/video-director-explainer/tree/main/plugins/video-director-explainer"
     }

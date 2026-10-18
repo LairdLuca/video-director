@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.1 (2026-10-18)
+
+Documentation only, no change in behaviour.
+
+- A short presentation video at the top of the README, made with the
+  plugin itself from this repository's docs.
+- `README.it.md`, an Italian translation of the README, with the Italian
+  version of the video.
+- The videos and their poster frames are in `media/`.
+
 ## 1.0.0 (2026-10-17)
 
 **Renamed: the plugin is now `video-director-explainer`.** The old name

@@ -1,6 +1,6 @@
 {
   "name": "video-director-explainer-video",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A data-driven Remotion project: storyboard.json and voiceover.json in, a narrated video out",
   "private": true,
   "license": "MIT",
