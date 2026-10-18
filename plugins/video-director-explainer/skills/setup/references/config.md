@@ -295,12 +295,12 @@ silicon; Intel Macs have no onnxruntime wheel at the pinned version.
   ones for a machine without Python or ffmpeg: written from the tools'
   documentation, not run.
 - Downloads behind a proxy: Node's fetch does not read proxy variables.
-- `language` other than `it`.
+- `language` other than `it` and `en`.
 - `fonts.mjs` on macOS and Linux (run only on Windows), and font files given
   by the user in `.woff` or `.woff2` (accepted without reading them).
 - The whole runtime on macOS and Linux (only Windows was run).
-- The music and effects levels were set by measure and heard on 20 s clips
-  only, not yet in a full video: the first videos should be listened to
-  with that in mind. A user folder was tried with test files only.
-- `musicStyle=auto`: Claude's choice of the style was not tried on a new
-  video yet.
+- The music and effects levels were set by measure, chosen on 20 s clips and
+  heard in four whole videos of 75-88 s (`minimal` and `warm`); `pulse` only
+  on 20 s clips. A user folder was tried with test files only.
+- `musicStyle=auto`: Claude's choice of the style was tried on four videos
+  only (`minimal` twice, `warm` twice).

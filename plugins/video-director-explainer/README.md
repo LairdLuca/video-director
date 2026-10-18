@@ -161,7 +161,8 @@ Other third-party licenses: [THIRD_PARTY.md](../../THIRD_PARTY.md).
 - Only Italian and English (`en`) narration tested; pronunciation judged by Whisper, not by ear.
 - 1080 px on the short side only; no screen recording or publishing. On 9:16
   and 1:1 a terminal or code line fits about 61 characters.
-- Music and effects heard on 20 s clips only, not in a whole video.
+- Music and effects heard in whole videos in `minimal` and `warm` only;
+  `pulse` on 20 s clips only.
 - `Screenshot` and `Custom` scenes tried on test data only.
 - A fix after the final review means a full re-render.
 - About 600 MB per video project (its own `node_modules` and headless browser).
@@ -176,12 +177,13 @@ Other third-party licenses: [THIRD_PARTY.md](../../THIRD_PARTY.md).
 
 ## Not yet proven
 
-- Languages other than Italian, report and task videos, facts from git
-  history, videos over 2 minutes.
+- Languages other than Italian and English (`en`), report and task videos,
+  facts from git history, videos over 2 minutes.
 - Per-shot re-render of a finished film.
-- 9:16 and 1:1 in a full video (checked on stills and 3 s clips), Claude's
-  choice of the format and of the music style, a text font other than
-  Inter in a full video, music and effects heard over a whole film.
+- 1:1 in a full video (checked on stills and 3 s clips; 9:16 in one full
+  video), Claude's choice of the format (tried on one video) and of the
+  music style (four videos), a text font other than Inter in a full video, the `pulse` music style heard over a
+  whole film.
 - The model download path for the large files, and downloads behind a proxy.
 - License questions not settled by a lawyer: the MIT voice module imports
   `phonemizer` and loads espeak-ng (both GPL-3.0-or-later) at run time,

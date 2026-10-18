@@ -454,26 +454,28 @@ leaves it to the screen and to a serious subject).
 
 ## Not yet proven
 
-- Light stages together with the chapter bar and captions were not seen in any
-  test video before this plugin; the first videos should be watched with
-  that in mind.
+- Light stages together with the chapter bar and captions: seen by the user
+  in four whole videos (three 16:9, one 9:16), not yet in 1:1.
 - The palettes and the caption halo are our own. The defaults were checked
   on stills of every scene in the three formats and on 3 s clips; the
   other palettes on one still each (their prototypes) and by contrast.
-- 9:16 and 1:1: checked on stills of every scene and on one 3 s clip each,
-  with estimated word times; no full video has been made in them.
+- 1:1: checked on stills of every scene and on one 3 s clip, with estimated
+  word times; no full video has been made in it. 9:16: also one full test
+  video (75 s), watched by the user.
 - A text font other than Inter: checked on stills (a font found on the
   machine); a font file given by the user, only by the font check.
 - Parts in the chapter bar: checked on stills (2 parts of 3 chapters, and 4
-  parts over 10 chapters).
-- Music and effects: levels and pauses measured, and 20 s clips of the three
-  styles made for the user to listen to; not yet heard in a full video,
-  not yet judged on a long one (does a style tire over 2-3 minutes?). The
-  `high` level was chosen by ear on 20 s clips, not on a whole film.
-  Claude's choice of the style (the table above) was not tried on a new
-  video yet. The user folder was tried with test files only.
-- 24 px terminals on 9:16 and 1:1: checked on stills and one shot render,
-  not watched on a phone.
+  parts over 10 chapters) and in one full 9:16 test video (2 parts of 3
+  chapters).
+- Music and effects: levels and pauses measured, 20 s clips of the three
+  styles made for the user to listen to, then four whole videos of 75-88 s
+  heard by the user (`minimal` in two, `warm` in two); `pulse` only on the
+  20 s clips. Not yet judged on a long video (does a style tire over 2-3
+  minutes?). The `high` level, chosen on 20 s clips, was kept after those
+  videos. Claude's choice of the style (the table above) was tried on those
+  four videos only. The user folder was tried with test files only.
+- 24 px terminals on 9:16 and 1:1: checked on stills, one shot render and
+  the full 9:16 test video, not watched on a phone.
 - The "report of work done" arc has no rendered example yet. The "task to
   do" arc was made in three test videos from markdown sources, none of them
   in this repository.

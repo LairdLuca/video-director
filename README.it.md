@@ -228,11 +228,12 @@ li contiene), e `@remotion/transitions` dichiara `UNLICENSED` nel suo
   dello schermo, niente pubblicazione. In 9:16 e 1:1 una riga di terminale o
   di codice tiene circa 61 caratteri: i video con righe più lunghe restano
   16:9.
-- **Musica ed effetti sono stati misurati, poi ascoltati solo su clip di 20
-  secondi**, non ancora in un video intero. Tre stili generati, nessun
-  campione al setup.
-- **9:16 e 1:1 sono stati controllati su fotogrammi e brevi clip**
-  dell'esempio, non ancora in un video completo.
+- **Musica ed effetti sono stati ascoltati in video interi solo in due
+  stili**: `minimal` in due video di prova, `warm` nei due video in cima a
+  questa pagina. `pulse` è stato ascoltato solo su clip di 20 secondi. Tre
+  stili generati, nessun campione al setup.
+- **Il 9:16 è stato controllato in un video completo; l'1:1 solo su
+  fotogrammi e brevi clip** dell'esempio, non ancora in un video completo.
 - Le scene **Screenshot** e **Custom** sono state provate solo su dati di
   test.
 - Una correzione dopo la review finale vuol dire un **nuovo render

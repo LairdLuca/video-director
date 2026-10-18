@@ -355,8 +355,8 @@ layout. No new npm package.
 - `Screenshot` (tested only with a synthetic image) and `Custom` (tested only
   with a trivial component).
 - The 9:16 and 1:1 layouts: checked on stills of every scene of the example
-  (with terminal lines shortened in a lab copy) and on a 3 s clip each, not
-  in a full video. `fork`, `column` with edge labels, `Screenshot` and a
+  (with terminal lines shortened in a lab copy) and on a 3 s clip each; 9:16
+  also in one full test video, 1:1 not in a full video. `fork`, `column` with edge labels, `Screenshot` and a
   4-node row were not drawn on a narrow frame.
 - The lint's layout limits are estimates from character widths and counts,
   not a measured layout; the contact sheet is the real check. The same

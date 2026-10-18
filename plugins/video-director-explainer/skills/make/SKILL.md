@@ -549,10 +549,11 @@ vertical") is a new layout: `format=` here, the storyboard's `width` and
   only a 3-chapter, 3-sentence one was made.
 - macOS and Linux (written for them, run only on Windows), including the
   font folders searched for the text font.
-- 9:16 and 1:1 videos: the layouts were checked on stills and 3 s clips of
-  the example, not in a full video; Claude's choice of the format was not
-  tried yet.
-- Music and sound effects in a full video: measured on the example with its
-  real voice and on 20 s clips of each style, not yet heard by a viewer in
-  a whole film; `sfx` and the music style chosen by Claude in a new video
-  were not tried yet.
+- 1:1 videos: the layouts were checked on stills and 3 s clips of the
+  example, not in a full video. 9:16 was made in one full test video, where
+  Claude picked the format from the request; the choice of the format was
+  tried on that video only.
+- Music and sound effects over a long video: heard by the user in four whole
+  videos of 75-88 s (`minimal` in two, `warm` in two, level `high`), not in
+  a video over 2 minutes; `pulse` only on 20 s clips. Claude's choice of the
+  music style was tried on those four videos only.

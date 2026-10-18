@@ -252,11 +252,11 @@ use it for a company with more than 3 people.
 - The install commands `doctor` prints for macOS and Linux, and the winget
   ones on a machine that has no Python or ffmpeg at all.
 - Downloads behind a proxy: Node's fetch does not read proxy variables.
-- Languages other than Italian.
+- Languages other than Italian and English (`en`).
 - The palette, font, music and sound questions: written for this version,
   not yet asked in a fresh setup; the font list was run on Windows only.
-- The music style left to Claude for every video (`auto`): not yet tried
-  on a series of real videos.
+- The music style left to Claude for every video (`auto`): tried on four
+  videos (`minimal` twice, `warm` twice), not on a longer series.
 - A folder of one's own sounds: tried with test files made for the purpose
   (an MP3 shorter than the film, looped, and WAV and OGG effects), not with
   real music.

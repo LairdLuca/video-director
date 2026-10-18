@@ -214,10 +214,12 @@ License.
 - **1080 px on the short side only** (16:9, 9:16, 1:1); no screen recording,
   no publishing. On 9:16 and 1:1 a terminal or code line fits about 61
   characters: videos with longer lines stay 16:9.
-- **Music and effects were measured, then heard only on 20-second clips**,
-  not yet in a whole video. Three generated styles, no samples at setup.
-- **9:16 and 1:1 were checked on stills and short clips** of the example,
-  not yet in a full video.
+- **Music and effects were heard in whole videos only in two styles**:
+  `minimal` in two test videos, `warm` in the two videos at the top of this
+  page. `pulse` was heard only on 20-second clips. Three generated styles, no
+  samples at setup.
+- **9:16 was checked in one full video; 1:1 only on stills and short clips**
+  of the example, not yet in a full video.
 - The **Screenshot** and **Custom** scenes have only been tried on test data.
 - A fix after the final review means a **full re-render** (about 5 minutes).
 - Each video project carries its own `node_modules` and headless browser

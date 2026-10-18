@@ -340,6 +340,9 @@ by line, exactly.
 - Storyboards over about 2 minutes and a half: test videos of 131-141 s were
   rendered, nothing longer.
 - `sfx`: placed and measured on the example (an error and a success effect,
-  both in the pause that ends their sentence); not yet heard in a full video.
+  both in the pause that ends their sentence), then heard by the user in four
+  whole videos (five effects each, none over speech); not yet in a video
+  over 2 minutes.
 - `parts`: checked with the lint and on stills (two parts of three chapters,
-  and four parts over ten chapters), not in a rendered video.
+  and four parts over ten chapters), and rendered in one 9:16 test video
+  (two parts of three chapters); four parts not in a rendered video.

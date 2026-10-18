@@ -383,7 +383,8 @@ nothing on a second run.
   word, as a test video's review had found by ear), and in the unit tests.
 - Code words in the captions: the marking ran in the unit tests and on the
   example's narration, and the captions were checked on stills of a video
-  with estimated word times; not yet in a video with measured voice.
+  with estimated word times, then in four whole videos with measured voice
+  (Italian and English).
 - `kubelet` in the base lexicon: the same entry an example video proved;
   `pod` and `manifest` are left to the video's own lexicon, since the British
   `pod` variant made the next word sound different in one test.
