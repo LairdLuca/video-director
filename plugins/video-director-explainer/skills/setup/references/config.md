@@ -11,7 +11,7 @@ apply to it.
 
 | Key | Values | Default | What it does |
 |---|---|---|---|
-| `language` | `it`, `en`, `en-gb`, `es`, `fr`, `pt` | `it` | narration and on-screen language; only `it` is tested |
+| `language` | `it`, `en`, `en-gb`, `es`, `fr`, `pt` | `it` | narration and on-screen language; only `it` and `en` are tested |
 | `engine` | `kokoro` | `kokoro` | text-to-speech engine; local only |
 | `voice` | a Kokoro voice of the language | the language's default (`im_nicola` for `it`) | the narrator |
 | `speed` | 0.7-1.3, or `auto` | `auto`: the voice's own default | Kokoro speed; the defaults put the pace at 2.3-2.7 words/s |

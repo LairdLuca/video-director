@@ -85,7 +85,7 @@ scelta è una chiave della configurazione del plugin:
 
 | Chiave | Scelta | Default |
 |---|---|---|
-| `language` | Lingua della narrazione e del testo a schermo | `it` (anche `en`, `en-gb`, `es`, `fr`, `pt`; solo l'italiano è testato) |
+| `language` | Lingua della narrazione e del testo a schermo | `it` (anche `en`, `en-gb`, `es`, `fr`, `pt`; sono testati solo l'italiano e l'inglese (`en`)) |
 | `voice` | Voce, con un campione di 5 secondi per ogni candidata | il default della lingua (`im_nicola` per l'italiano) |
 | `captions` | Sottotitoli | sì |
 | `page` | Pagina HTML accanto a ogni video | sì |
@@ -216,9 +216,10 @@ li contiene), e `@remotion/transitions` dichiara `UNLICENSED` nel suo
 
 ## Limiti noti
 
-- **È stata testata solo la narrazione in italiano**, con le voci
-  `im_nicola` e `if_sara`. Le altre lingue hanno voci e frasi di esempio ma
-  nessun test.
+- **È stata testata solo la narrazione in italiano e in inglese**:
+  l'italiano con le voci `im_nicola` e `if_sara`, l'inglese (`en`) con
+  `am_michael` su un video completo. Le altre lingue, `en-gb` compreso, hanno
+  voci e frasi di esempio ma nessun test.
 - **La pronuncia la giudica Whisper, non un orecchio umano.** In un
   prototipo, il 93% dei termini inglesi in frasi italiane è stato
   riconosciuto, su frasi tenute fuori dalla taratura; `on-call` e `rebase`

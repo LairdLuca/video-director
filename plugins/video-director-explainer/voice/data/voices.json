@@ -4,7 +4,7 @@
     "it": { "espeak": "it", "whisper": "it", "prefix": "i", "default": "im_nicola", "tested": true,
             "sample": "Ciao, sono la voce del video. Il pod di checkout è in CrashLoopBackOff.",
             "names": ["if_sara", "im_nicola"] },
-    "en": { "espeak": "en-us", "whisper": "en", "prefix": "a", "default": "am_michael", "tested": false,
+    "en": { "espeak": "en-us", "whisper": "en", "prefix": "a", "default": "am_michael", "tested": true,
             "sample": "Hi, I am the narration voice. The checkout pod is in CrashLoopBackOff.",
             "names": ["af_alloy", "af_aoede", "af_bella", "af_heart", "af_jessica", "af_kore", "af_nicole", "af_nova", "af_river", "af_sarah", "af_sky", "am_adam", "am_echo", "am_eric", "am_fenrir", "am_liam", "am_michael", "am_onyx", "am_puck", "am_santa"] },
     "en-gb": { "espeak": "en-gb", "whisper": "en", "prefix": "b", "default": "bm_george", "tested": false,

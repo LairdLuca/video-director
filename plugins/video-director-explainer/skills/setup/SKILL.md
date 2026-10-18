@@ -110,7 +110,7 @@ gives the current values; offer them as the defaults.
 
 | Key | Question | Default |
 |---|---|---|
-| `language` | Language of the narration and of the text on screen? | `it` (others: `en`, `en-gb`, `es`, `fr`, `pt`; only Italian is tested) |
+| `language` | Language of the narration and of the text on screen? | `it` (others: `en`, `en-gb`, `es`, `fr`, `pt`; only Italian and English are tested) |
 | `engine` | (no question) tell the user the voice is Kokoro, local; it is the only engine in this version | `kokoro` |
 | `voice` | Which voice? See below | the language's default (`im_nicola` for `it`) |
 | `captions` | Captions burned into the video? | yes |

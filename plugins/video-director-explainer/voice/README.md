@@ -144,7 +144,7 @@ the shape of `voiceover.json` and the reuse of unchanged sentences.
 
 ## Not yet proven
 
-- Narration languages other than Italian (the filler and elision rules have
+- Narration languages other than Italian and English (`en`) (the filler and elision rules have
   entries for es, pt, fr, de, untested).
 - Kokoro word timing: kokoro-onnx 0.6.1 can report phoneme times only for a
   model export with a `duration` output; the published v1.0 file has none.

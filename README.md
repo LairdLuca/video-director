@@ -82,7 +82,7 @@ choice is a key of the plugin's config:
 
 | Key | Choice | Default |
 |---|---|---|
-| `language` | Narration and on-screen language | `it` (also `en`, `en-gb`, `es`, `fr`, `pt`; only Italian is tested) |
+| `language` | Narration and on-screen language | `it` (also `en`, `en-gb`, `es`, `fr`, `pt`; only Italian and English (`en`) are tested) |
 | `voice` | Voice, with a 5-second sample of each candidate | the language's default (`im_nicola` for Italian) |
 | `captions` | Captions | on |
 | `page` | HTML page next to each video | on |
@@ -204,8 +204,10 @@ License.
 
 ## Known limits
 
-- **Only Italian narration has been tested**, with the voices `im_nicola` and
-  `if_sara`. Other languages have voices and sample sentences but no test.
+- **Only Italian and English narration have been tested**: Italian with the
+  voices `im_nicola` and `if_sara`, English (`en`) with `am_michael` on one
+  full video. Other languages, `en-gb` included, have voices and sample
+  sentences but no test.
 - **Pronunciation is judged by Whisper, not by a human ear.** In a prototype,
   93% of English terms in Italian sentences were recognised on sentences held
   out from tuning; `on-call` and `rebase` still failed. Acronyms need markup.

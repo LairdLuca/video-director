@@ -2,8 +2,10 @@
 
 ## 1.0.1 (2026-10-18)
 
-Documentation only, no change in behaviour.
-
+- **English (`en`) is now a tested language**, after a full video with
+  the voice `am_michael` (the English presentation video below). Setup and
+  `config.mjs` no longer warn that it is not tested; `en-gb` and the other
+  languages are still untested.
 - A short presentation video at the top of the README, made with the
   plugin itself from this repository's docs.
 - `README.it.md`, an Italian translation of the README, with the Italian

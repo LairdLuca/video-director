@@ -158,7 +158,7 @@ Other third-party licenses: [THIRD_PARTY.md](../../THIRD_PARTY.md).
 
 ## Known limits
 
-- Only Italian narration tested; pronunciation judged by Whisper, not by ear.
+- Only Italian and English (`en`) narration tested; pronunciation judged by Whisper, not by ear.
 - 1080 px on the short side only; no screen recording or publishing. On 9:16
   and 1:1 a terminal or code line fits about 61 characters.
 - Music and effects heard on 20 s clips only, not in a whole video.
