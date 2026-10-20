@@ -60,15 +60,43 @@ In short:
 
 ## Install
 
-From GitHub:
+First choose the **level** of the install. Claude Code has three, and the
+choice is yours:
+
+| Level | Settings file | Who gets the plugin |
+|---|---|---|
+| `user` | `~/.claude/settings.json` | you, in every project on this machine (Claude Code's default) |
+| `project` | `.claude/settings.json` of the project | everyone who gets the project through git is offered it |
+| `local` | `.claude/settings.local.json` of the project | you, in this project only |
+
+From a terminal opened in the project (for `project` and `local` the folder
+decides which project gets the plugin), with your level in place of `<level>`:
+
+```
+claude plugin marketplace add LairdLuca/video-director-explainer --scope <level>
+claude plugin install video-director-explainer@video-director-explainer --scope <level>
+```
+
+Inside a Claude Code session the same two steps are:
 
 ```
 /plugin marketplace add LairdLuca/video-director-explainer
 /plugin install video-director-explainer@video-director-explainer
 ```
 
-From a local clone: `/plugin marketplace add <path to the clone>`, then the
-same `install` line.
+and the install shows a pane where you pick the level. The session form of
+`marketplace add` takes no level, so the terminal form is the one that puts
+the marketplace at your level too.
+
+From a local clone: the path to the clone in place of
+`LairdLuca/video-director-explainer`, then the same `install` line.
+
+Whatever the level, the voice runtime and the models that setup builds (about
+3 GB) stay at user level, in the plugin's data folder, once per machine.
+
+To remove the plugin, the same level again:
+`claude plugin uninstall video-director-explainer@video-director-explainer --scope <level>`,
+then `claude plugin marketplace remove video-director-explainer --scope <level>`.
 
 Then run the setup once:
 

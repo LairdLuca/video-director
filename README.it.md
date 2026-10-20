@@ -63,15 +63,45 @@ di 90 secondi; le regole sono in
 
 ## Installazione
 
-Da GitHub:
+Prima scegli il **livello** dell'installazione. Claude Code ne ha tre, e la
+scelta è tua:
+
+| Livello | File di settings | Chi riceve il plugin |
+|---|---|---|
+| `user` | `~/.claude/settings.json` | tu, in ogni progetto di questa macchina (il default di Claude Code) |
+| `project` | `.claude/settings.json` del progetto | chiunque riceva il progetto via git se lo vede proporre |
+| `local` | `.claude/settings.local.json` del progetto | tu, solo in questo progetto |
+
+Da un terminale aperto nel progetto (per `project` e `local` è la cartella a
+decidere quale progetto riceve il plugin), con il tuo livello al posto di
+`<livello>`:
+
+```
+claude plugin marketplace add LairdLuca/video-director-explainer --scope <livello>
+claude plugin install video-director-explainer@video-director-explainer --scope <livello>
+```
+
+Dentro una sessione di Claude Code gli stessi due passi sono:
 
 ```
 /plugin marketplace add LairdLuca/video-director-explainer
 /plugin install video-director-explainer@video-director-explainer
 ```
 
-Da un clone locale: `/plugin marketplace add <path del clone>`, poi la stessa
-riga `install`.
+e l'install mostra un pannello in cui scegli il livello. La forma di sessione
+di `marketplace add` non ha un livello, quindi è la forma da terminale a
+mettere anche il marketplace al tuo livello.
+
+Da un clone locale: il path del clone al posto di
+`LairdLuca/video-director-explainer`, poi la stessa riga `install`.
+
+Qualunque sia il livello, il runtime della voce e i modelli che il setup
+costruisce (circa 3 GB) restano a livello utente, nella cartella dati del
+plugin, una volta per macchina.
+
+Per togliere il plugin, di nuovo lo stesso livello:
+`claude plugin uninstall video-director-explainer@video-director-explainer --scope <livello>`,
+poi `claude plugin marketplace remove video-director-explainer --scope <livello>`.
 
 Poi lancia il setup una volta:
 

@@ -8,9 +8,20 @@ user's guide; this file explains how the plugin is built.
 
 ## Install and setup
 
+Choose the level first: `user`, `project` or `local`. The repository
+[README](../../README.md#install) says what each one means. From a terminal
+in the project:
+
 ```
-/plugin marketplace add LairdLuca/video-director-explainer
-/plugin install video-director-explainer@video-director-explainer
+claude plugin marketplace add LairdLuca/video-director-explainer --scope <level>
+claude plugin install video-director-explainer@video-director-explainer --scope <level>
+```
+
+or, inside a session, `/plugin marketplace add` and `/plugin install` with
+the same arguments, and the level picked in the install pane. Then, in a
+session:
+
+```
 /video-director-explainer:setup
 ```
 
