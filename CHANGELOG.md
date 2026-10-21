@@ -13,7 +13,9 @@ the application.
     with secrets read from the environment or an env file (never printed),
     runs the steps of a `capture.json`, measures the boxes of CSS
     selectors and takes the screenshot. Only the app's own host and the
-    hosts allowed are reached; other requests are blocked and counted;
+    hosts allowed are reached; other requests and WebSockets are blocked
+    and counted, DNS prefetch and direct WebRTC UDP are off. A `fill` step
+    reads only the env file's variables or those named with `--allow-env`;
   - masks are solid and drawn into the pixels: CSS selectors and text that
     looks like an email, an IBAN, a card or long number, an IP address, a
     phone, a tax code or a token are covered before the screenshot is

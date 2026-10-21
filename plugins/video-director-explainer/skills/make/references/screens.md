@@ -32,7 +32,7 @@ refuses any other.
    an example: `<plugin>/examples/acme-shop-site/`) and run:
 
    ```
-   node "<plugin>/scripts/shots.mjs" capture "<videoDir>" "<videoDir>/capture.json" [--env-file <file>]
+   node "<plugin>/scripts/shots.mjs" capture "<videoDir>" "<videoDir>/capture.json" [--env-file <file>] [--allow-env <NAME>,...]
    ```
 
    The viewport is the image: 1600x900 for a 16:9 video, 900x1600 for 9:16.
@@ -46,7 +46,9 @@ A capture logs in to the user's application. Ask before the first one of a
 video, in one message: the address, the pages, where the login secrets are
 (the names of the variables, or an env file), and that the capture reaches
 only that host. Never read or print the secrets yourself: give the env file
-to `--env-file` and the variable names to the `fill` steps. A site behind
+to `--env-file` and the variable names to the `fill` steps. A secret that
+is already in the environment is read only when its name is passed with
+`--allow-env`: no other variable of the environment can be typed into a page. A site behind
 single sign-on, MFA or a captcha cannot be scripted: ask the user for a
 saved session (`--storage-state`) or for screenshots to import.
 
@@ -137,7 +139,7 @@ target is a point of the image: the centre of the box it goes to (`x + w/2`,
 
 - Capture of sites behind single sign-on with a saved session
   (`--storage-state`): written, not tried.
-- WebSocket traffic is not filtered by the host rule (only HTTP requests).
+- The WebSocket filter and the WebRTC and DNS-prefetch switches were tried on a site without WebSockets only.
 - Desktop applications: import only; no capture of a native window.
 - `autoMask` patterns are shapes; they miss names and catch harmless numbers
   (dates written as long numbers). Seen in test runs: the look at every

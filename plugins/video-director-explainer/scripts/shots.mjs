@@ -11,7 +11,7 @@ import { checkName, imageSize, loadShots, nameFromFile, parseBox, saveShots, sha
 const HELP = `
 Usage:
   node shots.mjs import  <videoDir> <image>... [--name <n>] [--boxes <file>]
-  node shots.mjs capture <videoDir> <capture.json> [--env-file <file>] [--allow-host <h>[,<h>]] [--storage-state <file>]
+  node shots.mjs capture <videoDir> <capture.json> [--env-file <file>] [--allow-env <NAME>[,<NAME>]] [--allow-host <h>[,<h>]] [--storage-state <file>]
   node shots.mjs mask    <videoDir> <name> <x,y,w,h>... --why "<what is covered>"
   node shots.mjs box     <videoDir> <name> <box name> <x,y,w,h>
   node shots.mjs grid    <videoDir> <name> [--crop x,y,w,h] [--step 50]
@@ -38,9 +38,11 @@ The scene refers to a box by name ("ref"), so a box is measured, not guessed.
            phones, tax codes, tokens) before the screenshot is taken: the
            uncovered pixels never reach the disk. Only the host of "base"
            and the allowed hosts are reached; other requests are blocked and
-           counted. Secrets come only from "env" variable names: from the
-           environment or from --env-file (X=Y, set X=Y, export X=Y), read
-           by this script and never printed. A site behind SSO or MFA: a
+           counted, WebSockets included. Secrets come only from "env"
+           variable names, and only from --env-file (X=Y, set X=Y, export
+           X=Y, read by this script) or from environment variables named
+           with --allow-env: no other variable can be typed into a page.
+           The names are printed before the browser starts, never the values. A site behind SSO or MFA: a
            --storage-state file the user saved, or import their screenshots.
   mask     covers boxes of an image with a solid fill, in its pixels.
   box      records a box measured by eye (source "measured").
@@ -108,12 +110,13 @@ const main = async () => {
     const cfgFile = rest[0] ? path.resolve(rest[0]) : die("capture: give the capture.json file");
     const cfg = readJson(cfgFile);
     const secrets = args["env-file"] ? readEnvFile(path.resolve(args["env-file"])) : {};
+    const allowEnv = String(args["allow-env"] ?? "").split(",").map((n) => n.trim()).filter(Boolean);
     const allowHosts = String(args["allow-host"] ?? "").split(",").map((h) => h.trim()).filter(Boolean);
     const storageState = args["storage-state"] ?? (cfg.storageState ? path.resolve(path.dirname(cfgFile), cfg.storageState) : undefined);
     if (storageState && !existsSync(storageState)) die(`storage state ${slash(storageState)} not found`);
     const host = new URL(cfg.base).hostname;
     console.log(`capturing ${cfg.shots?.length ?? 0} shots from ${isLoopback(host) ? "a local site" : `the remote site ${host}`}${cfg.ignoreHttpsErrors ? " (certificate errors ignored, as capture.json asks)" : ""}`);
-    const res = await runCapture(videoDir, cfg, { secrets, allowHosts, storageState });
+    const res = await runCapture(videoDir, cfg, { secrets, allowEnv, allowHosts, storageState });
     let missing = 0;
     for (const s of res.shots) {
       const out = path.join(shotsDir, `${s.name}.png`);

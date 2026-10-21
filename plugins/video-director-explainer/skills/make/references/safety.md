@@ -94,8 +94,9 @@ seen there. Each rule below names the incident or the measurement behind it.
     pinned version before it was added, and used only through `shots.mjs`
     (never its command line, which can download browsers).
 15. **Secrets stay out of sight; real data is covered.** A login for a
-    capture goes only through `env` variable names, from the environment or
-    an env file that `shots.mjs` reads itself: never open, print or copy an
+    capture goes only through `env` variable names, from an env file that
+    `shots.mjs` reads itself or from environment variables named with
+    `--allow-env`: never open, print or copy an
     env file, a password or a session file, and never write a secret into
     `capture.json`, `facts.md` or `OUTCOME.md`. Every screenshot is looked at
     before it is used, and names, customer codes, account numbers, amounts

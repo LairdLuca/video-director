@@ -66,8 +66,14 @@ export const withBrowser = async (videoDir, fn) => {
   const { chromium } = loadPlaywright(videoDir);
   const executablePath = await headlessShell(videoDir);
   const before = browserPids(videoDir);
-  // The sandbox stays on: the pages are the user's site, not ours.
-  const browser = await chromium.launch({ executablePath, headless: true, chromiumSandbox: true });
+  // The sandbox stays on: the pages are the user's site, not ours. No DNS
+  // prefetch and no direct WebRTC UDP: traffic the request filter cannot see.
+  const browser = await chromium.launch({
+    executablePath,
+    headless: true,
+    chromiumSandbox: true,
+    args: ["--dns-prefetch-disable", "--force-webrtc-ip-handling-policy=disable_non_proxied_udp"],
+  });
   const stop = () => browser.close().catch(() => {});
   process.once("SIGINT", stop);
   try {
@@ -209,13 +215,20 @@ export const checkCapture = (cfg) => {
  * Run capture.json. Returns, per shot, the PNG bytes (already masked), the
  * boxes measured on the page and the masks drawn, plus the hosts blocked.
  */
-export const runCapture = async (videoDir, cfg, { secrets = {}, allowHosts = [], storageState } = {}) => {
+export const runCapture = async (videoDir, cfg, { secrets = {}, allowEnv = [], allowHosts = [], storageState } = {}) => {
   const { base, viewport } = checkCapture(cfg);
   const allowed = new Set([base.host.toLowerCase(), ...(cfg.allowHosts ?? []), ...allowHosts].map((h) => String(h).toLowerCase()));
   const blocked = {};
+  // "env" reads only the env file's variables and the ones the user named
+  // with --allow-env: a capture.json cannot type any other variable of the
+  // environment (a cloud key, a token) into a page.
+  const names = [...new Set([...(cfg.login ?? []), ...cfg.shots.flatMap((s) => s.steps ?? [])].filter((s) => s.env !== undefined).map((s) => s.env))];
+  const refused = names.filter((n) => !Object.hasOwn(secrets, n) && !allowEnv.includes(n));
+  if (refused.length) die(`capture.json reads ${refused.join(", ")}, which is neither in --env-file nor named with --allow-env`, 1);
+  if (names.length) console.log(`secrets read: ${names.join(", ")} (names only, values never printed)`);
   const secret = (name) => {
-    const v = secrets[name] ?? process.env[name];
-    if (v === undefined || v === "") die(`the variable ${name} is not set (give it in the environment or with --env-file)`, 1);
+    const v = Object.hasOwn(secrets, name) ? secrets[name] : process.env[name];
+    if (v === undefined || v === "") die(`the variable ${name} is not set (give it in --env-file, or in the environment with --allow-env)`, 1);
     return v;
   };
   return withBrowser(videoDir, async (browser) => {
@@ -239,6 +252,18 @@ export const runCapture = async (videoDir, cfg, { secrets = {}, allowHosts = [],
       if (allowed.has(host)) return route.continue();
       blocked[host] = (blocked[host] ?? 0) + 1;
       return route.abort("blockedbyclient");
+    });
+    // WebSockets do not go through route(): the same host rule, on their own.
+    await context.routeWebSocket(/.*/, (ws) => {
+      let host = "";
+      try {
+        host = new URL(ws.url()).host.toLowerCase();
+      } catch {
+        /* closed below */
+      }
+      if (allowed.has(host)) return ws.connectToServer();
+      blocked[`${host || "?"} (websocket)`] = (blocked[`${host || "?"} (websocket)`] ?? 0) + 1;
+      return ws.close();
     });
     const page = await context.newPage();
     page.setDefaultTimeout(STEP_TIMEOUT);
