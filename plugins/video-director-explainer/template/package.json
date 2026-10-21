@@ -1,6 +1,6 @@
 {
   "name": "video-director-explainer-video",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "A data-driven Remotion project: storyboard.json and voiceover.json in, a narrated video out",
   "private": true,
   "license": "MIT",
@@ -13,6 +13,7 @@
     "@remotion/renderer": "4.0.535",
     "@remotion/transitions": "4.0.535",
     "lucide-react": "1.47.0",
+    "playwright-core": "1.64.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "remotion": "4.0.535"

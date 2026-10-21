@@ -7,6 +7,7 @@ import { configMismatches, loadVideo, parseArgs, printHelp, readJson, resolveVid
 import { EFFECT_SECONDS, seedOf } from "./lib/music.mjs";
 import { writeFontModule } from "./lib/fonts.mjs";
 import { iconFile, writeIconModule } from "./lib/icons.mjs";
+import { loadShots, sha256, shotOfSrc, writeShotModule } from "./lib/shots.mjs";
 
 const HELP = `
 Usage: node lint-storyboard.mjs <videoDir> [--quiet]
@@ -124,6 +125,9 @@ const main = async () => {
 
   // The template bundles only the icons listed in src/icons.generated.ts.
   writeIconModule(videoDir, storyboard);
+  // The Screenshot scene reads sizes and boxes from src/shots.generated.ts.
+  const shotData = loadShots(videoDir);
+  writeShotModule(videoDir, shotData);
 
   // Voice files.
   for (const s of timeline.sentences) {
@@ -400,19 +404,42 @@ const main = async () => {
         break;
       }
       case "Screenshot": {
+        // The image must come through shots.mjs: its size and boxes are
+        // measured there, and its masks were looked at before the video.
+        const known = p.src ? shotOfSrc(shotData, p.src) : null;
         if (!p.src) err(shot, "props.src is required");
         else if (!existsSync(path.join(videoDir, "public", p.src))) err(shot, `public/${p.src} not found`);
-        if (!Array.isArray(p.size) || p.size.length !== 2) err(shot, "props.size [width, height] of the image is required");
+        else if (!known) err(shot, `${p.src} is not in shots.json: import or capture it with shots.mjs`);
+        else {
+          if (!known.reviewed) err(shot, `${p.src} is not reviewed: look at it, cover what must not be seen (shots.mjs mask), then shots.mjs review`);
+          if (sha256(path.join(videoDir, "public", p.src)) !== known.sha256) err(shot, `public/${p.src} changed after shots.mjs wrote it: import or capture it again`);
+        }
+        const size = p.size ?? known?.size;
+        if (!Array.isArray(size) || size.length !== 2) err(shot, "the size of the image is unknown (shots.json or props.size)");
+        else if (known && p.size && (p.size[0] !== known.size[0] || p.size[1] !== known.size[1])) err(shot, `props.size ${p.size.join("x")} is not the image's ${known.size.join("x")}: leave it out`);
+        const byEye = new Set();
         for (const r of p.regions ?? []) {
           need(r.at, "a region");
-          const [x, y, w, h] = r.box ?? [];
-          if (p.size && (x < 0 || y < 0 || x + w > p.size[0] || y + h > p.size[1])) err(shot, `region ${JSON.stringify(r.box)} is outside the image`);
+          if ((r.box === undefined) === (r.ref === undefined)) {
+            err(shot, 'a region takes "ref" (a box of shots.json) or "box", one of them');
+            continue;
+          }
+          const named = r.ref !== undefined ? known?.boxes?.[r.ref] : null;
+          if (r.ref !== undefined && !named) {
+            err(shot, `region ref "${r.ref}" is not a box of ${p.src} (${Object.keys(known?.boxes ?? {}).join(", ") || "none"})`);
+            continue;
+          }
+          if (named?.source === "measured") byEye.add(r.ref);
+          if (r.box !== undefined) warn(shot, `region ${JSON.stringify(r.box)} has no source: prefer a box of shots.json ("ref")`);
+          const [x, y, w, h] = named?.box ?? r.box ?? [];
+          if (size && (x < 0 || y < 0 || x + w > size[0] || y + h > size[1])) err(shot, `region ${JSON.stringify([x, y, w, h])} is outside the image`);
+          if (r.kind === "callout" && !r.label) warn(shot, "a callout without a label");
         }
+        if (byEye.size) warn(shot, `boxes measured by eye, not on the page: ${[...byEye].join(", ")} (check them on the contact sheet)`);
         for (const q of p.pan ?? []) {
           need(q.at, "a pan");
-          if (q.to?.[2] > 1.5) warn(shot, "pan scale over 1.5");
+          if (q.to?.[2] > 2) warn(shot, "pan scale over 2 (drawn at 2)");
         }
-        warn(shot, "Screenshot is not yet proven in a real video");
         break;
       }
       case "Custom": {

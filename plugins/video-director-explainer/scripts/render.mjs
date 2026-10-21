@@ -7,6 +7,7 @@ import {
   die,
   freeMemGb,
   freePort,
+  portTaken,
   browserPids,
   loadVideo,
   parseArgs,
@@ -28,6 +29,7 @@ import {
 import { buildBed, mixWithBed, writeWav } from "./lib/audio.mjs";
 import { writeFontModule } from "./lib/fonts.mjs";
 import { writeIconModule } from "./lib/icons.mjs";
+import { writeShotModule } from "./lib/shots.mjs";
 
 const HELP = `
 Usage: node render.mjs <videoDir> [--concurrency 1|2] [--composition Video] [--force] [--keep-raw]
@@ -98,6 +100,7 @@ const main = async () => {
   if (mismatch.length) die(`${mismatch.join("; ")} (run lint-storyboard)`, 1);
   const icons = writeIconModule(videoDir, storyboard);
   if (icons.missing.length) die(`unknown icons: ${icons.missing.join(", ")} (run lint-storyboard)`, 1);
+  writeShotModule(videoDir);
   const font = writeFontModule(videoDir);
   if (font.missing.length) die(`font file ${font.missing.join(", ")} not found (run lint-storyboard)`, 1);
 
@@ -137,16 +140,28 @@ const main = async () => {
   if (!headlessBrowserReady(videoDir)) console.log(`${BROWSER_DOWNLOAD_NOTE} (the render time below includes it)`);
   const before = browserPids(videoDir);
   const t0 = Date.now();
-  const r = await runNode(
-    remotionCli(videoDir),
-    [
-      "render", "src/index.ts", composition, raw,
-      `--concurrency=${concurrency}`, `--port=${port}`,
-      "--codec=h264", "--audio-codec=aac", "--image-format=jpeg",
-      "--chrome-mode=headless-shell", "--enforce-audio-track", "--overwrite", "--log=info",
-    ],
-    { cwd: videoDir, env: safeEnv() },
-  );
+  const renderOn = (p) =>
+    runNode(
+      remotionCli(videoDir),
+      [
+        "render", "src/index.ts", composition, raw,
+        `--concurrency=${concurrency}`, `--port=${p}`,
+        "--codec=h264", "--audio-codec=aac", "--image-format=jpeg",
+        "--chrome-mode=headless-shell", "--enforce-audio-track", "--overwrite", "--log=info",
+      ],
+      { cwd: videoDir, env: safeEnv() },
+    );
+  // The port is chosen before the bundle (about a minute): another video's
+  // stills or render started meanwhile can take it, and Remotion then stops
+  // with "port ... is not available". Seen with two sessions on one
+  // machine, both starting from 3123. A port taken by then means: next one.
+  let usedPort = port;
+  let r = await renderOn(usedPort);
+  for (let retry = 0; retry < 2 && r.code !== 0 && !existsSync(raw) && (await portTaken(usedPort)); retry++) {
+    usedPort = await freePort(usedPort + 1);
+    console.log(`port taken by another process meanwhile: render again on 127.0.0.1:${usedPort}`);
+    r = await renderOn(usedPort);
+  }
   const renderMs = Date.now() - t0;
   // Safety rule: nothing of the render stays running once this script exits.
   // A process already told to terminate can stay listed for tens of seconds
@@ -213,7 +228,7 @@ ${mixed.stderr.slice(-800)}`, 1);
     durationS: Number((frames / timeline.fps).toFixed(2)),
     freeMemoryGb: Number(free.toFixed(1)),
     concurrency,
-    server: `127.0.0.1:${port}`,
+    server: `127.0.0.1:${usedPort}`,
     renderSeconds: Number((renderMs / 1000).toFixed(1)),
     bedSeconds: Number((bedMs / 1000).toFixed(1)),
     loudnormSeconds: Number((loudMs / 1000).toFixed(1)),
