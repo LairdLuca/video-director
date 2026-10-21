@@ -1,6 +1,6 @@
 # video-director-explainer
 
-**Versione 1.0.1**, vedi il [changelog](CHANGELOG.md) (in inglese). [English](README.md) | Italiano
+**Versione 1.1.0**, vedi il [changelog](CHANGELOG.md) (in inglese). [English](README.md) | Italiano
 
 [![Un breve video sul plugin, fatto con il plugin stesso](media/video-director-explainer-it.jpg)](media/video-director-explainer-it.mp4)
 
@@ -59,6 +59,11 @@ di 90 secondi; le regole sono in
   soggetto, che cambia a ogni capitolo e finisce con il filmato, e pochi
   **effetti sonori** (un cambio di capitolo, l'errore, il controllo che
   passa), solo nelle pause della narrazione, mai sopra una parola;
+- **schermate vere** dell'applicazione di cui parla il video: screenshot
+  dei tuoi test o catturati da una web app con lo stesso browser headless
+  che renderizza il video, una camera che va sul campo nominato dalla
+  narrazione, evidenziazioni su box misurati sulla pagina, e nomi, conti e
+  importi coperti con maschere piene scritte nell'immagine;
 - il sintomo della prima inquadratura torna risolto alla fine.
 
 ## Installazione
@@ -184,7 +189,11 @@ Remotion, non uno sha256 di questo plugin.
 1. **Fatti** in `facts.md`, ognuno con la sua fonte: la conversazione, git
    (log, diff, commit) o file markdown. Niente viene inventato; una lacuna si
    scrive, non si riempie. Claude sceglie il formato e lo stile della musica
-   dal soggetto, a meno che tu non li abbia chiesti.
+   dal soggetto, a meno che tu non li abbia chiesti. **Schermate**: gli
+   screenshot che esistono già si importano; uno che manca si cattura dalla
+   web app, dopo averlo chiesto, con il login letto da un file env e
+   nessun host raggiunto oltre a quello dell'app. Claude guarda ogni
+   immagine e copre quello che non si deve vedere.
 2. **Narrazione** (`script.json`): 60-90 secondi, un'idea per frase, divisa
    in capitoli. **Checkpoint**: vedi il copione e i capitoli prima che la
    voce venga registrata (a meno che i checkpoint siano `none`).
@@ -264,8 +273,12 @@ li contiene), e `@remotion/transitions` dichiara `UNLICENSED` nel suo
   stili generati, nessun campione al setup.
 - **Il 9:16 è stato controllato in un video completo; l'1:1 solo su
   fotogrammi e brevi clip** dell'esempio, non ancora in un video completo.
-- Le scene **Screenshot** e **Custom** sono state provate solo su dati di
-  test.
+- Le **schermate** sono state provate in video di prova solo su
+  applicazioni web, in 16:9: nessuna cattura di applicazioni desktop (se ne
+  importano gli screenshot), nessuna ancora dietro single sign-on. Le
+  maschere automatiche trovano email, IBAN e numeri, non i nomi: per quelli
+  c'è lo sguardo di Claude su ogni immagine.
+- La scena **Custom** è stata provata solo con un grafico semplice.
 - Una correzione dopo la review finale vuol dire un **nuovo render
   completo** (circa 5 minuti).
 - Ogni progetto video ha i suoi `node_modules` e il suo browser headless

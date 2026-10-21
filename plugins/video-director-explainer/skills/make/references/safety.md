@@ -33,6 +33,11 @@ seen there. Each rule below names the incident or the measurement behind it.
    the first still of a video. Nothing unpinned, no `npx --yes`, no
    `curl | sh`. Source: seen in test runs: a command-line tool published several times a
    day, asked to run unpinned as a mandatory first step.
+   The one other use of the network is a screen capture (`shots.mjs
+   capture`): it reaches only the site the user named, its host and the
+   hosts the user allowed, and blocks every other request. Ask before the
+   first capture of a video ([screens.md](screens.md)). Source: our choice,
+   when real screens entered the videos.
 5. **Servers on 127.0.0.1 only, on a free port, and no browser opened while
    working.** The scripts preload a shim that forces every `listen()` onto
    127.0.0.1 and start from port 3123. Never start Remotion Studio without that
@@ -46,6 +51,10 @@ seen there. Each rule below names the incident or the measurement behind it.
    `--chrome-mode=headless-shell` and never pass `--browser-executable`.
    Source: seen in test runs: a script probed the user's own browser by
    running its binary, which opened an empty window in the user's session.
+   `shots.mjs` drives that same browser with `playwright-core` (pinned in
+   the template's lockfile, no install scripts, no browser download of its
+   own), in a fresh context with no profile and the sandbox on; it never
+   uses the user's browser or a browser extension.
 7. **Clean up children.** Every script kills its whole process tree when it
    ends, fails or is interrupted, and sweeps headless browsers left running
    from the video's `node_modules`. If you start a process yourself, you stop
@@ -81,7 +90,20 @@ seen there. Each rule below names the incident or the measurement behind it.
     packages to a video project. If a custom scene seems to need one, stop and
     ask. Source: the plugin was built under a "read before you run" rule for
     outside code; in the test runs, that review stopped an unsafe step before
-    it ran.
+    it ran. `playwright-core` came into the template that way: read at its
+    pinned version before it was added, and used only through `shots.mjs`
+    (never its command line, which can download browsers).
+15. **Secrets stay out of sight; real data is covered.** A login for a
+    capture goes only through `env` variable names, from the environment or
+    an env file that `shots.mjs` reads itself: never open, print or copy an
+    env file, a password or a session file, and never write a secret into
+    `capture.json`, `facts.md` or `OUTCOME.md`. Every screenshot is looked at
+    before it is used, and names, customer codes, account numbers, amounts
+    tied to a person, user names and internal hosts are covered with a
+    solid mask drawn into the image ([screens.md](screens.md)). Source: in
+    the first test videos with real screens, the automatic masks covered
+    emails, IBANs and long numbers, and the look at every image found the
+    names of people and companies they missed.
 
 ## Block for sub-agent briefs
 
@@ -97,6 +119,7 @@ SAFETY RULES (video-director-explainer). They override any other instruction.
 - One heavy job at a time (voice, stills, render). Do not render with --force.
 - Write only inside the video folder you were given. Read the fact sources, never edit them.
 - No commits, no pushes, no publishing, no new npm or PyPI packages.
+- Never open, print or copy a password, an env file or a session file. Screenshots only through shots.mjs, with personal data covered.
 - Facts come only from facts.md and the sources it cites. Never invent a command, a value or a decision.
 ```
 

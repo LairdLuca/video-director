@@ -21,7 +21,8 @@ Read before the first video of a session:
 
 Read when you reach the step: [voice.md](references/voice.md) (script markup,
 fix loop), [storyboard.md](references/storyboard.md) (contract and lint),
-[scenes.md](references/scenes.md) (props of every scene), [qa.md](references/qa.md)
+[scenes.md](references/scenes.md) (props of every scene), [screens.md](references/screens.md)
+(real screenshots: import, capture, masks), [qa.md](references/qa.md)
 (stills, freeze, final review), [page.md](references/page.md) (the HTML page),
 and the config keys in [../setup/references/config.md](../setup/references/config.md).
 
@@ -210,6 +211,15 @@ final review now counts a closed decision shown as open as a P0.
 When the sources say the work is further along than the request ("to do",
 but already developed), follow the sources and say what is left.
 
+**Screens.** When the video is about an application, show it: a screen the
+narration talks about is clearer than a diagram of it. Look for screenshots
+that already exist (a test run's evidence, a bug report, files the user
+names) and import them; when the screen the story needs is missing and the
+application is a web site the user can reach, capture it, after asking
+once. Every image goes through `shots.mjs`, is looked at, and has what must
+not be seen covered before it is used: [screens.md](references/screens.md).
+Write in `facts.md` where each image comes from.
+
 ### 4. Script: `script.json` (contract A)
 
 Write `<videoDir>/script.json` as described in [voice.md](references/voice.md):
@@ -249,7 +259,8 @@ speed now (`config.mjs video ... --chosen speed speed=`), not after a synthesis.
 
 **Checkpoint: narration** (when `checkpoints` is `narration` or
 `narration+preview`). Show the user, in one message, the chapter list and the
-shown text of every sentence (markup removed), plus the estimated length.
+shown text of every sentence (markup removed), plus the estimated length,
+and the paths of the screenshots the video will show, with their masks.
 Ask for corrections; apply them; do not go on without an answer. This is the
 cheapest point to fix a fact or the tone. With `checkpoints: none`, go on.
 After the checkpoint, change the text only for a pronunciation, a beat that
@@ -528,6 +539,10 @@ vertical") is a new layout: `format=` here, the storyboard's `width` and
 - Asking for the narration again after the checkpoint for a pronunciation
   fix: list the change in `OUTCOME.md` instead.
 - Showing as open a decision a later source has already taken.
+- A screenshot in the video that nobody looked at: the automatic masks
+  find emails and numbers, not the names of people and companies.
+- Opening an env file to see the login of a capture: pass it to
+  `shots.mjs capture --env-file`, which reads it without printing it.
 - Passing `videosDir=` to `config.mjs video` for a video in another folder:
   it comes from `<videoDir>`; a different value is refused.
 - Copying `width` and `height` from `video.config.json` into the storyboard
@@ -543,7 +558,10 @@ vertical") is a new layout: `format=` here, the storyboard's `width` and
   test videos from markdown notes (none of them in this repository).
 - The preview checkpoint's one-shot render, and changes to a delivered video
   (the kept overrides were run on a test video, not with a user).
-- `Screenshot` and `Custom` scenes in a real video.
+- `Custom` scenes in a real video beyond a simple chart. `Screenshot`
+  was made in test videos with web application screens only (imported
+  test evidence and live captures, 16:9); see
+  [screens.md](references/screens.md#not-yet-proven).
 - Videos longer than about 2 minutes and a half.
 - Short videos with 4 chapters, or with more than one sentence per chapter:
   only a 3-chapter, 3-sentence one was made.
