@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // A fictional acme-shop back office on 127.0.0.1, to try shots.mjs capture:
 // a login form, an order list with data that must be covered (customer
-// names, emails, IBANs), an order page, and two requests to other hosts that
-// the capture must block. Every name and number here is invented.
+// names, emails, IBANs, one email in a shadow root and one in an iframe), an
+// order page, two requests to other hosts and a redirect to another host
+// (/leave) that the capture must block. Every name and number is invented.
 import http from "node:http";
 
 const port = Number(process.argv[2] ?? 4317);
@@ -49,7 +50,9 @@ const list = (q) => {
   return shell(
     "Orders",
     `<div class="card"><form method="get" action="/orders"><input id="q" name="q" value="${q ?? ""}" placeholder="order or status"> <button id="search">Search</button></form></div>
-<div class="card"><table id="orders"><thead><tr><th>Order</th><th>Customer</th><th>Email</th><th>IBAN</th><th>Total</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`,
+<div class="card"><table id="orders"><thead><tr><th>Order</th><th>Customer</th><th>Email</th><th>IBAN</th><th>Total</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>
+<div class="card" id="contacts"><acme-support></acme-support> <iframe id="billing" src="/frame" title="billing" style="border:0;height:40px;width:520px;vertical-align:middle"></iframe></div>
+<script>customElements.define("acme-support", class extends HTMLElement { connectedCallback() { this.attachShadow({ mode: "open" }).innerHTML = "Support: support@acme-shop.example"; } });</script>`,
   );
 };
 
@@ -86,7 +89,10 @@ const server = http.createServer((req, res) => {
 <button id="signin" type="submit">Sign in</button></form></div></main>`),
     );
   }
+  // A redirect to another host, which a capture must refuse.
+  if (url.pathname === "/leave") return send(302, "", { location: "https://leak.example.com/" });
   if (!signedIn) return send(302, "", { location: "/login" });
+  if (url.pathname === "/frame") return send(200, '<body style="margin:0;font:16px system-ui">Billing: billing@acme-shop.example</body>');
   if (url.pathname === "/" || url.pathname === "/orders") return send(200, list(url.searchParams.get("q")));
   const m = url.pathname.match(/^\/orders\/(\d+)$/);
   const o = m && orders.find((x) => x.id === Number(m[1]));

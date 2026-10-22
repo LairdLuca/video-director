@@ -59,7 +59,8 @@ amounts tied to a person, user names, server names. A video is easy to
 forward; what it shows, it shows to everyone.
 
 - **The capture covers before the screenshot**: the `mask` selectors of the
-  shot, and every text that looks like an email, an IBAN, a card or long
+  shot, and every text, in the page, in its frames and in open shadow roots,
+  that looks like an email, an IBAN, a card or long
   number, an IP address, a phone, a tax code or a token (`autoMask`, on by
   default). The uncovered pixels never reach the disk.
 - **Look at every image** (read it as an image) before it goes in the video,
@@ -140,6 +141,7 @@ target is a point of the image: the centre of the box it goes to (`x + w/2`,
 - Capture of sites behind single sign-on with a saved session
   (`--storage-state`): written, not tried.
 - The WebSocket filter and the WebRTC and DNS-prefetch switches were tried on a site without WebSockets only.
+- Closed shadow roots cannot be read: text inside them is not found by `autoMask`. A frame that cannot be read is covered whole.
 - Desktop applications: import only; no capture of a native window.
 - `autoMask` patterns are shapes; they miss names and catch harmless numbers
   (dates written as long numbers). Seen in test runs: the look at every

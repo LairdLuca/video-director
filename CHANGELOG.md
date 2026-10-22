@@ -14,12 +14,16 @@ the application.
     runs the steps of a `capture.json`, measures the boxes of CSS
     selectors and takes the screenshot. Only the app's own host and the
     hosts allowed are reached; other requests and WebSockets are blocked
-    and counted, DNS prefetch and direct WebRTC UDP are off. A `fill` step
+    and counted, redirects to another host included (a response is
+    fetched without following it, and a Location off the allowed hosts is
+    refused), DNS prefetch and direct WebRTC UDP are off. A secret is typed
+    only into a page of an allowed host. A `fill` step
     reads only the env file's variables or those named with `--allow-env`;
   - masks are solid and drawn into the pixels: CSS selectors and text that
     looks like an email, an IBAN, a card or long number, an IP address, a
     phone, a tax code or a token are covered before the screenshot is
-    taken; `mask` covers more after Claude has looked at the image;
+    taken, in the page, its frames and open shadow roots (a frame that
+    cannot be read is covered whole); `mask` covers more after Claude has looked at the image;
   - `grid` draws a labelled coordinate grid (enlarged with `--crop`) to
     measure a box by eye on an imported image, and `box` records it;
   - `review` marks an image as looked at; `list` shows them all.

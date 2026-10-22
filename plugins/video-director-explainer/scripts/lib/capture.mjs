@@ -131,27 +131,58 @@ const findSensitive = (patterns) => {
     if (r.width < 2 || r.height < 2 || r.bottom < 0 || r.right < 0 || r.top > innerHeight || r.left > innerWidth) return;
     out.push({ kind, box: [r.left - 2, r.top - 2, r.width + 4, r.height + 4] });
   };
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-    const text = n.nodeValue;
-    if (!text || !text.trim()) continue;
-    for (const [kind, re] of res) {
-      re.lastIndex = 0;
-      for (let m = re.exec(text); m; m = re.exec(text)) {
-        const range = document.createRange();
-        range.setStart(n, m.index);
-        range.setEnd(n, m.index + m[0].length);
-        for (const r of range.getClientRects()) add(kind, r);
+  // The document and every open shadow root under it (text inside a web
+  // component is not under document.body's tree walker).
+  const roots = [document.body ?? document.documentElement];
+  for (let i = 0; i < roots.length; i++) {
+    for (const el of roots[i].querySelectorAll("*")) if (el.shadowRoot) roots.push(el.shadowRoot);
+  }
+  for (const root of roots) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const text = n.nodeValue;
+      if (!text || !text.trim()) continue;
+      for (const [kind, re] of res) {
+        re.lastIndex = 0;
+        for (let m = re.exec(text); m; m = re.exec(text)) {
+          const range = document.createRange();
+          range.setStart(n, m.index);
+          range.setEnd(n, m.index + m[0].length);
+          for (const r of range.getClientRects()) add(kind, r);
+        }
       }
     }
+    // Form values are not text nodes; a closed select's text has no rectangle
+    // of its own, so the whole control is covered.
+    for (const el of root.querySelectorAll("input, textarea, select")) {
+      const v = el.type === "password" ? "x" : el.tagName === "SELECT" ? [...el.selectedOptions].map((o) => o.text).join(" ") : el.value;
+      if (!v) continue;
+      const hit = el.type === "password" ? "password" : res.find(([, re]) => ((re.lastIndex = 0), re.test(v)))?.[0];
+      if (hit) add(hit, el.getBoundingClientRect());
+    }
   }
-  // Form values are not text nodes; a closed select's text has no rectangle
-  // of its own, so the whole control is covered.
-  for (const el of document.querySelectorAll("input, textarea, select")) {
-    const v = el.type === "password" ? "x" : el.tagName === "SELECT" ? [...el.selectedOptions].map((o) => o.text).join(" ") : el.value;
-    if (!v) continue;
-    const hit = el.type === "password" ? "password" : res.find(([, re]) => ((re.lastIndex = 0), re.test(v)))?.[0];
-    if (hit) add(hit, el.getBoundingClientRect());
+  return out;
+};
+
+/**
+ * findSensitive in the page and in every frame, the frames' rectangles moved
+ * to page coordinates. A frame that cannot be read is covered whole: what
+ * cannot be checked is not shown.
+ */
+const findInFrames = async (page) => {
+  const out = await page.evaluate(findSensitive, AUTO_PATTERNS);
+  for (const frame of page.frames()) {
+    if (frame === page.mainFrame()) continue;
+    const el = await frame.frameElement().catch(() => null);
+    const box = el && (await el.boundingBox().catch(() => null));
+    if (!box) continue;
+    try {
+      for (const f of await frame.evaluate(findSensitive, AUTO_PATTERNS)) {
+        out.push({ kind: f.kind, box: [f.box[0] + box.x, f.box[1] + box.y, f.box[2], f.box[3]] });
+      }
+    } catch {
+      out.push({ kind: "frame not readable", box: [box.x, box.y, box.width, box.height] });
+    }
   }
   return out;
 };
@@ -242,16 +273,44 @@ export const runCapture = async (videoDir, cfg, { secrets = {}, allowEnv = [], a
       ...(storageState ? { storageState } : {}),
     });
     // Only the site's own host (and the hosts the user allowed) is reached.
-    await context.route("**/*", (route) => {
+    const block = (host) => {
+      blocked[host] = (blocked[host] ?? 0) + 1;
+    };
+    await context.route("**/*", async (route) => {
       let host;
       try {
         host = new URL(route.request().url()).host.toLowerCase();
       } catch {
         return route.abort("blockedbyclient");
       }
-      if (allowed.has(host)) return route.continue();
-      blocked[host] = (blocked[host] ?? 0) + 1;
-      return route.abort("blockedbyclient");
+      if (!allowed.has(host)) {
+        block(host);
+        return route.abort("blockedbyclient");
+      }
+      // A redirect would be followed outside this handler (route() sees only
+      // the first request of a chain): fetch without following, refuse a
+      // Location on another host, and hand the response to the page, which
+      // follows an allowed redirect through this handler again.
+      let response;
+      try {
+        response = await route.fetch({ maxRedirects: 0 });
+      } catch {
+        return route.abort("failed");
+      }
+      const location = response.status() >= 300 && response.status() < 400 ? response.headers().location : undefined;
+      if (location) {
+        let to = "?";
+        try {
+          to = new URL(location, route.request().url()).host.toLowerCase();
+        } catch {
+          /* blocked below */
+        }
+        if (!allowed.has(to)) {
+          block(`${to} (redirect)`);
+          return route.abort("blockedbyclient");
+        }
+      }
+      return route.fulfill({ response });
     });
     // WebSockets do not go through route(): the same host rule, on their own.
     await context.routeWebSocket(/.*/, (ws) => {
@@ -284,7 +343,11 @@ export const runCapture = async (videoDir, cfg, { secrets = {}, allowEnv = [], a
             if (!allowed.has(url.host.toLowerCase())) die(`${at}: ${url.host} is not the site's host nor an allowed host`, 1);
             await page.goto(url.href, { waitUntil: "load", timeout: Math.max(timeout, 30000) });
           } else if (s.click !== undefined) await page.locator(s.click).first().click({ timeout });
-          else if (s.fill !== undefined) await page.locator(s.fill).first().fill(s.env !== undefined ? secret(s.env) : String(s.text), { timeout });
+          else if (s.fill !== undefined) {
+            // A secret is typed only into a page of an allowed host.
+            if (s.env !== undefined && !allowed.has(new URL(page.url()).host.toLowerCase())) die(`${at}: the page is on ${new URL(page.url()).host}, not an allowed host; ${s.env} not typed`, 1);
+            await page.locator(s.fill).first().fill(s.env !== undefined ? secret(s.env) : String(s.text), { timeout });
+          }
           else if (s.press !== undefined) await (s.on ? page.locator(s.on).first().press(s.press, { timeout }) : page.keyboard.press(s.press));
           else if (s.select !== undefined) await page.locator(s.select).first().selectOption(String(s.value), { timeout });
           else if (s.hover !== undefined) await page.locator(s.hover).first().hover({ timeout });
@@ -294,7 +357,8 @@ export const runCapture = async (videoDir, cfg, { secrets = {}, allowEnv = [], a
         } catch (e) {
           // The message names the step and the selector; a filled value is never in it.
           const msg = String(e.message ?? e).split("\n")[0];
-          die(`${at} failed: ${msg}`, 1);
+          const hosts = Object.entries(blocked).map(([h, n]) => `${h} ${n}`).join(", ");
+          die(`${at} failed: ${msg}${hosts ? ` (blocked so far: ${hosts})` : ""}`, 1);
         }
       }
     };
@@ -312,7 +376,7 @@ export const runCapture = async (videoDir, cfg, { secrets = {}, allowEnv = [], a
         if (box) boxes[name] = box;
         else missing.push(`${name} (${sel})`);
       }
-      const autos = shot.autoMask === false ? [] : await page.evaluate(findSensitive, AUTO_PATTERNS);
+      const autos = shot.autoMask === false ? [] : await findInFrames(page);
       const masks = autos.map((a) => ({ box: clip(a.box, viewport), by: "auto", why: a.kind })).filter((m) => m.box);
       const selectorMasks = (shot.mask ?? []).map((sel) => page.locator(sel));
       for (const sel of shot.mask ?? []) {
