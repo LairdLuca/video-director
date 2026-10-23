@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0 (unreleased)
+## 1.1.0 (2026-10-23)
 
 **Real screens in the videos.** A video about an application can now show
 the application.
