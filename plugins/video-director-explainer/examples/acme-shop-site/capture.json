@@ -1,0 +1,25 @@
+{
+  "base": "http://127.0.0.1:4317",
+  "viewport": [1600, 900],
+  "login": [
+    { "goto": "/login" },
+    { "fill": "#user", "env": "ACME_USER" },
+    { "fill": "#password", "env": "ACME_PASSWORD" },
+    { "click": "#signin" },
+    { "waitFor": "#menu" }
+  ],
+  "shots": [
+    {
+      "name": "orders",
+      "steps": [{ "goto": "/orders" }, { "waitFor": "#orders tbody tr" }],
+      "boxes": { "search": "#search", "table": "#orders", "failed": "#status-2042" },
+      "mask": ["td.customer"]
+    },
+    {
+      "name": "order-2042",
+      "steps": [{ "click": "a[href='/orders/2042']" }, { "waitFor": "#retry" }],
+      "boxes": { "error": "#error", "status": "#status", "retry": "#retry" },
+      "mask": [".customer"]
+    }
+  ]
+}

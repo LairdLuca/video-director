@@ -26,6 +26,7 @@ are a useful API reference next to this plugin; nothing of them is copied.
 | `@fontsource/inter` | 5.2.8 | SIL Open Font License 1.1 | Inter, copyright The Inter Project Authors |
 | `@fontsource/jetbrains-mono` | 5.2.8 | SIL Open Font License 1.1 | JetBrains Mono, copyright The JetBrains Mono Project Authors |
 | `typescript` | 5.9.3 | Apache-2.0 | development only (type check) |
+| `playwright-core` | 1.64.0 | Apache-2.0 | used only by `shots.mjs` to capture screens with Remotion's headless browser; no install scripts, no dependencies, and it downloads no browser of its own (its command line, which can, is never run) |
 
 `new-video.mjs` copies the five font files with both font licenses
 (`LICENSE-inter.txt`, `LICENSE-jetbrains-mono.txt`) into each video's

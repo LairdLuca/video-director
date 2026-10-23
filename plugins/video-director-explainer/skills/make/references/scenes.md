@@ -274,23 +274,26 @@ Use `"theme": "dark"`, `"transitionIn": "fade-dark"` and `"chapterBar": false`.
 The block is centred in the stage; lines are 72 px on 16:9 and 60 px on 9:16
 and 1:1, where a line of 6 words may wrap.
 
-## Screenshot: a still of a UI or a page (not yet proven)
+## Screenshot: a still of a UI or a page
 
 ```json
-"props": { "src": "shots/dashboard.png", "size": [1600, 900],
-           "regions": [{ "box": [120, 80, 420, 60], "kind": "callout", "label": "error rate", "at": "rate" }],
-           "pan": [{ "to": [330, 110, 1.4], "at": "rate" }] }
+"props": { "src": "shots/orders.png",
+           "regions": [{ "ref": "failed", "kind": "callout", "label": "payment failed", "at": "failed" }],
+           "pan": [{ "to": [1430, 313, 1.4], "at": "failed" }] }
 ```
 
 | Prop | Required | Notes |
 |---|---|---|
-| `src` | yes | a file under the video's `public/` |
-| `size` | yes | `[width, height]` of the image in pixels |
-| `regions[]` | no | `box` `[x, y, w, h]` in image pixels, **measured, never guessed**; `kind`: `brackets`, `band`, `callout` (with `label`); `at` |
-| `pan[]` | no | `to` `[x, y, scale]` in image pixels, scale at most 1.5; `at` |
+| `src` | yes | an image `shots.mjs` imported or captured (`shots/<name>.png`); the lint refuses any other, and one not reviewed |
+| `size` | no | read from `shots.json`; give it only to check it |
+| `regions[]` | no | `ref`: a box of the image in `shots.json`, measured on the page, by a test suite or on the grid; or `box` `[x, y, w, h]` in image pixels (a warning: no source). `kind`: `brackets`, `band`, `callout` (with `label`); `at` |
+| `pan[]` | no | `to` `[x, y, scale]` in image pixels, scale at most 2 (a tall image needs more than a wide one); `at`. For a box, aim at its centre |
 
-The image comes from the user or from the facts; never draw a fake browser
-frame around it. The lint always warns that this scene is not yet proven.
+How the images get there, with their boxes and their masks, is in
+[screens.md](screens.md). Never draw a fake browser frame around an image.
+A tall image (a page longer than the screen) is drawn small: pan to the part
+the sentence names. A pan moves the focus to the centre of the frame, so a
+region far from it goes out of view: highlight it before the pan.
 
 ## Custom: the escape hatch
 
@@ -328,7 +331,14 @@ layout. No new npm package.
 - A `Terminal` with a 120-character line: split the output across lines as
   the facts show it, or add the shortened output to `facts.md`, with its
   source, and show that (the lint fails on any line not in the facts).
-- Guessing `Screenshot` region boxes: measure them on the image.
+- Guessing `Screenshot` region boxes: use a box of `shots.json` (`ref`),
+  measured on the page or on the grid ([screens.md](screens.md)).
+- A `callout` on a box near the left or right edge of the image: its label
+  (500 px wide, centred under the box) is cut by the frame. Use `brackets`
+  or `band` there, and say it in the narration.
+- In a form whose labels sit under their fields, a box around the label and
+  the field below it: that field is the next one. Look at the grid before
+  writing the box (a test video measured the wrong field once).
 - A `Custom` scene that does not wrap itself in `StageFrame`: no camera, no
   background, and the freeze probe fails.
 - A long value (a task number, a word) in a `HookStatus` slab beside a flow:
@@ -352,8 +362,9 @@ layout. No new npm package.
 
 ## Not yet proven
 
-- `Screenshot` (tested only with a synthetic image) and `Custom` (tested only
-  with a trivial component).
+- `Custom` (tested only with a trivial component).
+- `Screenshot` on 9:16 and 1:1, and with images other than full-width
+  screens of web applications.
 - The 9:16 and 1:1 layouts: checked on stills of every scene of the example
   (with terminal lines shortened in a lab copy) and on a 3 s clip each; 9:16
   also in one full test video, 1:1 not in a full video. `fork`, `column` with edge labels, `Screenshot` and a

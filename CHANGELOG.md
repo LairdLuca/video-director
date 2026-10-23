@@ -1,5 +1,47 @@
 # Changelog
 
+## 1.1.0 (unreleased)
+
+**Real screens in the videos.** A video about an application can now show
+the application.
+
+- `scripts/shots.mjs`, a new script for the `Screenshot` scene:
+  - `import` copies existing screenshots (a test run's evidence, a bug
+    report) and reads the boxes a test suite measured from a
+    `<image>.boxes.json` next to each one;
+  - `capture` opens a web app with Remotion's own headless browser, logs in
+    with secrets read from the environment or an env file (never printed),
+    runs the steps of a `capture.json`, measures the boxes of CSS
+    selectors and takes the screenshot. Only the app's own host and the
+    hosts allowed are reached; other requests and WebSockets are blocked
+    and counted, DNS prefetch and direct WebRTC UDP are off. A `fill` step
+    reads only the env file's variables or those named with `--allow-env`;
+  - masks are solid and drawn into the pixels: CSS selectors and text that
+    looks like an email, an IBAN, a card or long number, an IP address, a
+    phone, a tax code or a token are covered before the screenshot is
+    taken; `mask` covers more after Claude has looked at the image;
+  - `grid` draws a labelled coordinate grid (enlarged with `--crop`) to
+    measure a box by eye on an imported image, and `box` records it;
+  - `review` marks an image as looked at; `list` shows them all.
+- `shots.json` in each video records every image: size, boxes with where
+  each was measured, masks and why, origin, sha256, review.
+- The `Screenshot` scene reads its size and boxes from it: a region names a
+  box with `ref`. Callout labels sit on a card of their own, keep their size
+  under the zoom and move above the box when there is no room below; the
+  pan zooms up to 2 (tall pages need it).
+- The lint refuses a `Screenshot` whose image did not come through
+  `shots.mjs`, is not reviewed or changed afterwards, and warns on boxes
+  measured by eye.
+- New reference `skills/make/references/screens.md`; safety rules 4 and 6
+  cover the capture, new rule 15 on secrets and masks.
+- The template pins `playwright-core` 1.64.0 (Apache-2.0), used only by
+  `shots.mjs`; it downloads no browser of its own.
+- `examples/acme-shop-site/`: a fictional back office on 127.0.0.1 to try a
+  capture, with its `capture.json`.
+- `render.mjs`: when another video's stills or render take the chosen port
+  during the bundle (two sessions on one machine both start from 3123), the
+  render runs again on the next free port, up to two more times.
+
 ## 1.0.1 (2026-10-18)
 
 - **English (`en`) is now a tested language**, after a full video with

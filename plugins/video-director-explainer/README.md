@@ -1,6 +1,6 @@
 # video-director-explainer plugin
 
-**Version 1.0.1.** Teaches Claude to turn facts into a 60-90 second narrated
+**Version 1.1.0.** Teaches Claude to turn facts into a 60-90 second narrated
 explainer video (Remotion, a local Kokoro voice, captions, a chapter bar,
 generated music and sound effects; 16:9, 9:16 or 1:1) and a companion HTML
 page. The repository [README](../../README.md) is the
@@ -117,7 +117,7 @@ the effects; `scripts/lib/audio.mjs` ducks the music under the measured
 voice and places each effect in a pause of the narration. No audio file is
 shipped or downloaded.
 
-**Scripts** (`scripts/`, Node, no dependencies, no shell, Windows first):
+**Scripts** (`scripts/`, Node, no dependencies of their own, no shell, Windows first; `shots.mjs capture` and `grid` load the video's pinned `playwright-core`):
 
 | Script | What |
 |---|---|
@@ -131,6 +131,7 @@ shipped or downloaded.
 | `freeze.mjs` | freeze probe on still pairs 0.8 s apart |
 | `audio.mjs` | builds the music and effects bed alone and says where each effect falls |
 | `render.mjs` | memory check, loopback-only render, process cleanup, music and effects mix, two-pass loudnorm |
+| `shots.mjs` | screenshots for the `Screenshot` scene: `import` (with a test suite's boxes), `capture` a web app (playwright-core on Remotion's headless browser, own host only, secrets from env), `mask`, `box`, `grid`, `review`, `list` |
 | `page.mjs` | page.json -> one self-contained HTML file |
 | `open.mjs` | at delivery, opens the page (or the MP4) with the default program, once |
 
@@ -174,7 +175,7 @@ Other third-party licenses: [THIRD_PARTY.md](../../THIRD_PARTY.md).
   and 1:1 a terminal or code line fits about 61 characters.
 - Music and effects heard in whole videos in `minimal` and `warm` only;
   `pulse` on 20 s clips only.
-- `Screenshot` and `Custom` scenes tried on test data only.
+- Screens tried on web applications only (16:9); no desktop capture, none behind single sign-on yet. `Custom` tried with a simple chart only.
 - A fix after the final review means a full re-render.
 - About 600 MB per video project (its own `node_modules` and headless browser).
 - macOS and Linux code paths written, not run.

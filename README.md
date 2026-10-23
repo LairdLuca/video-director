@@ -1,6 +1,6 @@
 # video-director-explainer
 
-**Version 1.0.1**, see the [changelog](CHANGELOG.md). English | [Italiano](README.it.md)
+**Version 1.1.0**, see the [changelog](CHANGELOG.md). English | [Italiano](README.it.md)
 
 [![A short video about the plugin, made with the plugin itself](media/video-director-explainer-en.jpg)](media/video-director-explainer-en.mp4)
 
@@ -56,6 +56,11 @@ In short:
   subject, that changes with each chapter and ends with the film, and a few
   **sound effects** (a chapter change, the error, the passing check), only
   in the pauses of the narration, never over a word;
+- **real screens** of the application the video is about: screenshots
+  from your tests or captured from a web app with the same headless browser
+  that renders the video, a camera that pans to the field the narration
+  names, highlights on boxes measured on the page, and names, accounts and
+  amounts covered with solid masks drawn into the image;
 - the symptom of the first shot comes back resolved at the end.
 
 ## Install
@@ -175,7 +180,11 @@ Remotion checks that download, not a sha256 of this plugin.
 1. **Facts** into `facts.md`, each with its source: the conversation, git
    (log, diff, commits) or markdown files. Nothing is invented; a gap is
    written down, not filled. Claude picks the format and the music style
-   from the subject, unless you asked for them.
+   from the subject, unless you asked for them. **Screens**: existing
+   screenshots are imported; a missing one is captured from the web app,
+   after asking, with the login read from an env file and nothing but the
+   app's own host reached. Claude looks at every image and covers what
+   must not be seen.
 2. **Narration** (`script.json`): 60-90 seconds, one idea per sentence, in
    chapters. **Checkpoint**: you see the script and the chapters before the
    voice is recorded (unless checkpoints are `none`).
@@ -248,7 +257,11 @@ License.
   samples at setup.
 - **9:16 was checked in one full video; 1:1 only on stills and short clips**
   of the example, not yet in a full video.
-- The **Screenshot** and **Custom** scenes have only been tried on test data.
+- **Screens** were tried in test videos on web applications only, in 16:9:
+  no capture of desktop applications (import their screenshots), none
+  behind single sign-on yet. The automatic masks find emails, IBANs and
+  numbers, not names: Claude's look at each image does that.
+- The **Custom** scene has been tried with a simple chart only.
 - A fix after the final review means a **full re-render** (about 5 minutes).
 - Each video project carries its own `node_modules` and headless browser
   (about 600 MB).

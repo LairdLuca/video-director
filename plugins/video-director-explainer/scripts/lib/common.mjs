@@ -354,6 +354,14 @@ export const freePort = (start = 3123, tries = 50) =>
     attempt(start, tries);
   });
 
+/** True when something listens on 127.0.0.1:`port` now. */
+export const portTaken = (port) =>
+  new Promise((resolve) => {
+    const srv = net.createServer();
+    srv.once("error", () => resolve(true));
+    srv.listen(port, "127.0.0.1", () => srv.close(() => resolve(false)));
+  });
+
 export const freeMemGb = () => os.freemem() / 1024 ** 3;
 
 export const printHelp = (text) => {
